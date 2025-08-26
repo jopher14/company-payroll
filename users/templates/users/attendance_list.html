@@ -1,0 +1,128 @@
+{% extends "main/base.html" %}
+
+{% block title %}
+  {% if user.role == "manager" %}
+    Team Attendance
+  {% else %}
+    My Attendance
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0">
+        {% if user.role == "manager" %}
+          🗓 Team Attendance Records
+        {% else %}
+          🗓 My Attendance Records
+        {% endif %}
+      </h3>
+
+      {% if user.role != "manager" %}
+        <a href="{% url 'users:log_attendance' %}" class="btn btn-primary">
+          ⏰ Log Time In / Out
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            {% if user.role == "manager" %}
+              <th>Employee</th>
+              <th>Role</th>
+            {% endif %}
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Schedule</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in page_obj %}
+          <tr>
+            {% if user.role == "manager" %}
+              <td>{{ att.user.get_full_name }}</td>
+              <td>{{ att.user.role|title }}</td>
+            {% endif %}
+            <td>{{ att.date }}</td>
+
+            <!-- TIME IN -->
+            <td>
+              {% if att.time_in %}
+                {% if att.schedule and att.time_in > att.schedule.time_in %}
+                  <span class="badge bg-danger">{{ att.time_in|time:"H:i" }}</span> <!-- LATE -->
+                {% else %}
+                  <span class="badge bg-success">{{ att.time_in|time:"H:i" }}</span> <!-- ON TIME -->
+                {% endif %}
+              {% else %}
+                <span class="badge bg-secondary">-</span>
+              {% endif %}
+            </td>
+
+            <!-- TIME OUT -->
+            <td>
+              {% if att.time_out %}
+                {% if att.schedule and att.time_out < att.schedule.time_out %}
+                  <span class="badge bg-danger">{{ att.time_out|time:"H:i" }}</span> <!-- EARLY OUT -->
+                {% else %}
+                  <span class="badge bg-success">{{ att.time_out|time:"H:i" }}</span> <!-- ON TIME -->
+                {% endif %}
+              {% else %}
+                <span class="badge bg-secondary">-</span>
+              {% endif %}
+            </td>
+
+            <!-- SCHEDULE -->
+            <td>
+              {% if att.schedule %}
+                🕒 {{ att.schedule.time_in|time:"H:i" }} - {{ att.schedule.time_out|time:"H:i" }}
+              {% else %}
+                <span class="text-muted">Not set</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            {% if user.role == "manager" %}
+              <td colspan="6" class="text-center text-muted">No attendance records found.</td>
+            {% else %}
+              <td colspan="4" class="text-center text-muted">No attendance records found.</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>
+    </div>
+    <div class="d-flex justify-content-center mt-3">
+      <nav>
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+
+          <li class="page-item disabled"><span class="page-link">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span></li>
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

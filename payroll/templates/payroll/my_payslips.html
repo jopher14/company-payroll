@@ -1,0 +1,39 @@
+{% extends "main/base.html" %}
+{% block title %}My Payslips{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h3>My Payslips</h3>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Month</th>
+                <th>Basic Salary</th>
+                <th>Allowances</th>
+                <th>Deductions</th>
+                <th>Net Salary</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payslip in payslips %}
+            <tr>
+                <td>{{ payslip.month }}</td>
+                <td>{{ payslip.basic_salary }}</td>
+                <td>{{ payslip.allowances }}</td>
+                <td>{{ payslip.deductions }}</td>
+                <td>{{ payslip.net_salary }}</td>
+                <td>
+                    <a href="{% url 'view_payslip' payslip.id %}" class="btn btn-sm btn-primary">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No payslips found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>
+</div>
+{% endblock %}

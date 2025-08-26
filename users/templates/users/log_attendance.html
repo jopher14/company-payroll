@@ -1,0 +1,62 @@
+{% extends "main/base.html" %}
+
+{% block title %}Attendance{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+  <div class="card shadow p-4 text-center">
+    <h3 class="mb-3">Log Attendance</h3>
+    <p>Today: {{ attendance.date }}</p>
+
+    <!-- Show scheduled time -->
+    <p class="text-muted mb-1">
+      🕒 Scheduled Time In: <strong>{{ attendance.allowed_time_in_start }} - {{ attendance.allowed_time_in_end }}</strong>
+    </p>
+    <p class="text-muted mb-3">
+      🕒 Scheduled Time Out: <strong>{{ attendance.allowed_time_out_start }} - {{ attendance.allowed_time_out_end }}</strong>
+    </p>
+
+    {% if attendance.time_in and not attendance.time_out %}
+      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in }}</strong></p>
+      <p class="text-muted">You’ve already logged your arrival. Log your departure below.</p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary w-100">
+          ⏰ Log Time Out
+        </button>
+      </form>
+    {% elif attendance.time_in and attendance.time_out %}
+      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in }}</strong></p>
+      <p class="mt-1">⏰ Time Out: <strong>{{ attendance.time_out }}</strong></p>
+      <p class="text-muted">You’ve completed your attendance for today.</p>
+    {% else %}
+      <p class="mt-3">⏰ Current Time: <strong id="current-time"></strong></p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary w-100">
+          ⏰ Log Time In
+        </button>
+      </form>
+    {% endif %}
+
+    <div class="mt-4">
+      <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-secondary w-100">
+        📋 View Attendance Table
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateTime() {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2,'0');
+  const minutes = now.getMinutes().toString().padStart(2,'0');
+  const seconds = now.getSeconds().toString().padStart(2,'0');
+  document.getElementById('current-time').textContent = `${hours}:${minutes}:${seconds}`;
+}
+setInterval(updateTime, 1000);
+updateTime();
+</script>
+
+{% endblock %}

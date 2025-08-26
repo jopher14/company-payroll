@@ -1,0 +1,138 @@
+{% extends "main/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Welcome Banner -->
+  <div class="card shadow-lg border-0 rounded-3 mb-4 bg-primary text-white">
+    <div class="card-body text-center">
+      <h1 class="fw-bold">Welcome back, {{ user.get_full_name|default:user.username }} 👋</h1>
+      <p class="mb-0">You are logged in as <strong>{{ user.role|title }}</strong></p>
+    </div>
+  </div>
+
+  <!-- Dashboard Shortcuts -->
+  <div class="row g-4">
+
+    <!-- HR Dashboard -->
+    {% if user.role == "human_resources" or user.is_superuser %}
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body shadow p-4 text-center">
+          <h4 class="card-title mb-3">👥 Employees</h4>
+          <p class="text-muted mb-4">Register, manage, and update employee information.</p>
+          <div class="d-grid gap-2">
+            <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary btn-lg">
+              <i class="bi bi-people me-1"></i> Manage Employees
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Manager Dashboard -->
+    {% if user.role == "manager" %}
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body shadow p-4 text-center">
+          <h4 class="card-title mb-3">📊 Manager Dashboard</h4>
+          <p class="text-muted mb-4">
+            Oversee your team, view performance reports, and set schedules for employees and supervisors.
+          </p>
+          <div class="d-grid gap-2">
+            <a href="#" class="btn btn-outline-success btn-lg">
+              <i class="bi bi-graph-up me-1"></i> View Reports
+            </a>
+            <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-primary btn-lg">
+              <i class="bi bi-calendar2-check me-1"></i> Set Schedule
+            </a>
+            <a href="{% url 'users:log_attendance' %}" class="btn btn-success btn-lg">
+              <i class="bi bi-clock me-1"></i> Time In / Time Out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Supervisor Dashboard -->
+    {% if user.role == "supervisor" %}
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body shadow-lg p-4 text-center"> <!-- bigger shadow for emphasis -->
+          <h4 class="card-title mb-3">🗂 Team Requests</h4>
+          <p class="text-muted mb-4">Manage your team’s leave requests and your own leaves.</p>
+
+          <div class="d-grid gap-2">
+            <a href="{% url 'users:pending_leaves' %}" class="btn btn-warning w-100 text-dark">
+              <i class="bi bi-file-earmark-text me-1"></i> Check Leave Requests
+            </a>
+            <a href="{% url 'users:my_leaves' %}" class="btn btn-primary w-100">
+              <i class="bi bi-journal-plus me-1"></i> File a Leave
+            </a>
+            <a href="{% url 'payroll:my_payslips' %}" class="btn btn-success w-100">
+              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
+            </a>
+            <a href="{% url 'users:log_attendance' %}" class="btn btn-success w-100">
+              <i class="bi bi-file-earmark-text me-1"></i> TimeIn/TimeOut
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Employee Dashboard -->
+    {% if user.role == "employee" %}
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body shadow p-4 text-center">
+          <h4 class="card-title mb-3">📝 My Profile</h4>
+          <p class="text-muted mb-4">View your profile, tasks, company announcements, and attendance.</p>
+
+          <div class="d-grid gap-2">
+            <a href="{% url 'users:my_leaves' %}" class="btn btn-primary btn-lg">
+              <i class="bi bi-journal-plus me-1"></i> File a Leave
+            </a>
+
+            <a href="{% url 'payroll:my_payslips' %}" class="btn btn-success btn-lg">
+              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
+            </a>
+
+            <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-success btn-lg">
+              <i class="bi bi-clock me-1"></i> Time In / Time Out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Common for All Roles -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body shadow p-4 text-center">
+          <h4 class="card-title mb-3">📢 Announcements</h4>
+          <p class="text-muted mb-4">Check out the latest company news and updates.</p>
+
+          <div class="d-grid gap-2">
+            <a href="{% url 'main:announcement_list' %}" class="btn btn-outline-dark btn-lg">
+              <i class="bi bi-megaphone me-1"></i> View Announcements
+            </a>
+
+            {% if user.role == "human_resources" %}
+            <a href="{% url 'main:create_announcement' %}" class="btn btn-primary btn-lg">
+              <i class="bi bi-plus-lg me-1"></i> Create Announcement
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

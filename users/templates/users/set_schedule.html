@@ -1,0 +1,34 @@
+{% extends "main/base.html" %}
+{% load widget_tweaks %}
+{% block title %}Set Schedule{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+    <div class="card shadow p-4">
+        <h3 class="mb-3">Set Employee Schedule</h3>
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Employee Selection -->
+            <div class="mb-3">
+                {{ form.employee.label_tag }}
+                {{ form.employee|add_class:"form-select" }}
+            </div>
+
+            <!-- Time In and Time Out on the same line -->
+            <div class="row mb-3">
+                <div class="col">
+                    {{ form.time_in.label_tag }}
+                    {{ form.time_in|add_class:"form-select" }}
+                </div>
+                <div class="col">
+                    {{ form.time_out.label_tag }}
+                    {{ form.time_out|add_class:"form-select" }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Save Schedule</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "main/base.html" %}
+{% load widget_tweaks %}
+{% block title %}Update Employee{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 900px;">
+    <div class="card shadow p-4">
+        <h3 class="mb-3">Update Employee: {{ employee.get_full_name|default:employee.username }}</h3>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row">
+                <!-- Photo -->
+                <div class="text-center mb-3">
+                    {% if employee.photo %}
+                        <img src="{{ employee.photo.url }}" alt="Profile Photo" class="img-thumbnail mb-2" width="150">
+                    {% else %}
+                        <img src="/media/DefaultPhoto.jpg" alt="Default Photo" class="img-thumbnail mb-2" width="150">
+                    {% endif %}
+                    {{ form.photo }}
+                </div>
+
+                <!-- Left Column -->
+                <div class="col-md-6">
+
+                    <!-- Personal Info -->
+                    <div class="mb-3">
+                        {{ form.first_name.label_tag }}
+                        {{ form.first_name }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.last_name.label_tag }}
+                        {{ form.last_name }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.role.label_tag }}
+                        {{ form.role }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.status.label_tag }}
+                        {{ form.status }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.birthday.label_tag }}
+                        {{ form.birthday }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.contact_number.label_tag }}
+                        {{ form.contact_number }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.employee_id.label_tag }}
+                        {{ form.employee_id }}
+                    </div>
+                </div>
+
+                <!-- Right Column (aligned with First Name) -->
+                <div class="col-md-6">
+                    <h5 class="mb-3">Government IDs</h5>
+                    <div class="mb-3">
+                        {{ form.sss.label_tag }}
+                        {{ form.sss }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.tin.label_tag }}
+                        {{ form.tin }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.pagibig.label_tag }}
+                        {{ form.pagibig }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.philhealth.label_tag }}
+                        {{ form.philhealth }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
+            <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+
+<!-- Live preview for new photo -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const photoInput = document.querySelector("input[name='photo']");
+    const preview = document.querySelector(".mb-4.text-center img");
+
+    if (photoInput) {
+      photoInput.addEventListener("change", function () {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

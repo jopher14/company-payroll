@@ -1,0 +1,17 @@
+{% extends "main/base.html" %}
+{% block title %}Payslip - {{ payslip.month }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow p-4">
+        <h3 class="text-center mb-4">Payslip - {{ payslip.month }}</h3>
+        <p><strong>Employee:</strong> {{ payslip.employee.get_full_name|default:payslip.employee.username }}</p>
+        <p><strong>Basic Salary:</strong> {{ payslip.basic_salary }}</p>
+        <p><strong>Allowances:</strong> {{ payslip.allowances }}</p>
+        <p><strong>Deductions:</strong> {{ payslip.deductions }}</p>
+        <p><strong>Net Salary:</strong> {{ payslip.net_salary }}</p>
+        <p><strong>Generated At:</strong> {{ payslip.generated_at|date:"d M Y H:i" }}</p>
+        <a href="{% url 'my_payslips' %}" class="btn btn-secondary mt-3 w-100">Back</a>
+    </div>
+</div>
+{% endblock %}
