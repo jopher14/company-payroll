@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Leave, Attendance, Schedule
+from .models import User, Leave, Attendance, Schedule, Overtime
 
 
 class UserAdmin(BaseUserAdmin):
@@ -26,9 +26,19 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("username", "employee_id", "email", "role", "password1", "password2", "is_staff", "is_superuser"),
+            "fields": (
+                "username",
+                "employee_id",
+                "email",
+                "role",
+                "password1",
+                "password2",
+                "is_staff",
+                "is_superuser"
+            ),
         }),
     )
+
 
 # Register the custom User model with the custom UserAdmin
 admin.site.register(User, UserAdmin)
@@ -46,7 +56,7 @@ class LeaveAdmin(admin.ModelAdmin):
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'date', 'time_in', 'time_out', 'scheduled_time_in', 'scheduled_time_out')
+    list_display = ('employee', 'date', 'time_in', 'time_out')
     list_filter = ('date', 'employee')
     search_fields = ('employee__username', 'employee__first_name', 'employee__last_name')
     ordering = ('-date',)
@@ -64,3 +74,12 @@ class ScheduleAdmin(admin.ModelAdmin):
     list_filter = ("employee__role",)  # Filter by role
     search_fields = ("employee__username", "employee__employee_id")
     ordering = ("-created_at",)
+
+
+@admin.register(Overtime)
+class OvertimeAdmin(admin.ModelAdmin):
+    list_display = ("employee", "date", "hours", "reason", "status", "get_approved_by")
+
+    @admin.display(description="Approved By")
+    def get_approved_by(self, obj):
+        return obj.reviewed_by.get_full_name() if obj.reviewed_by else "—"

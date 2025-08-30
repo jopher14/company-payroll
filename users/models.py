@@ -53,7 +53,7 @@ class User(AbstractUser):
         return '/media/photos/default.png'
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return f"{self.first_name} ({self.role})"
 
 
 class Leave(models.Model):
@@ -94,14 +94,10 @@ class Attendance(models.Model):
     date = models.DateField(auto_now_add=True)
     time_in = models.TimeField(null=True, blank=True)
     time_out = models.TimeField(null=True, blank=True)
-    
-    # Add scheduled time fields
-    scheduled_time_in = models.TimeField(null=True, blank=True)
-    scheduled_time_out = models.TimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.employee.username} - {self.date}"
-    
+
     @property
     def schedule(self):
         return Schedule.objects.filter(employee=self.employee).first()
@@ -119,3 +115,30 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.time_in} to {self.time_out}"
+
+
+class Overtime(models.Model):
+    employee = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    time_in = models.TimeField(null=True, blank=True)
+    time_out = models.TimeField(null=True, blank=True)
+    hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    reason = models.TextField(blank=True, null=True)
+    status = models.CharField(
+        max_length=10,
+        choices=[
+            ("pending", "Pending"),
+            ("approved", "Approved"),
+            ("rejected", "Rejected")
+        ],
+        default="pending")
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_overtime"
+    )
+
+    def __str__(self):
+        return f"{self.employee} - {self.date} ({self.status})"

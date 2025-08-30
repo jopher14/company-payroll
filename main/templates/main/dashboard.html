@@ -43,7 +43,7 @@
             Oversee your team, view performance reports, and set schedules for employees and supervisors.
           </p>
           <div class="d-grid gap-2">
-            <a href="#" class="btn btn-outline-success btn-lg">
+            <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-success btn-lg">
               <i class="bi bi-graph-up me-1"></i> View Reports
             </a>
             <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-primary btn-lg">
@@ -69,6 +69,9 @@
           <div class="d-grid gap-2">
             <a href="{% url 'users:pending_leaves' %}" class="btn btn-warning w-100 text-dark">
               <i class="bi bi-file-earmark-text me-1"></i> Check Leave Requests
+            </a>
+            <a href="{% url 'users:pending_overtimes' %}" class="btn btn-warning w-100 text-dark">
+              <i class="bi bi-file-earmark-text me-1"></i> Check Overtime Requests
             </a>
             <a href="{% url 'users:my_leaves' %}" class="btn btn-primary w-100">
               <i class="bi bi-journal-plus me-1"></i> File a Leave

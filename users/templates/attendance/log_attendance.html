@@ -10,14 +10,15 @@
 
     <!-- Show scheduled time -->
     <p class="text-muted mb-1">
-      🕒 Scheduled Time In: <strong>{{ attendance.allowed_time_in_start }} - {{ attendance.allowed_time_in_end }}</strong>
-    </p>
-    <p class="text-muted mb-3">
-      🕒 Scheduled Time Out: <strong>{{ attendance.allowed_time_out_start }} - {{ attendance.allowed_time_out_end }}</strong>
+      {% if schedule %}
+        🕒 {{ schedule.time_in|time:"H:i" }} - {{ schedule.time_out|time:"H:i" }}
+      {% else %}
+        <span class="text-muted">Not set</span>
+      {% endif %}
     </p>
 
     {% if attendance.time_in and not attendance.time_out %}
-      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in }}</strong></p>
+      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in|date:"H:i" }}</strong></p>
       <p class="text-muted">You’ve already logged your arrival. Log your departure below.</p>
       <form method="post">
         {% csrf_token %}
@@ -25,10 +26,12 @@
           ⏰ Log Time Out
         </button>
       </form>
+
     {% elif attendance.time_in and attendance.time_out %}
-      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in }}</strong></p>
-      <p class="mt-1">⏰ Time Out: <strong>{{ attendance.time_out }}</strong></p>
+      <p class="mt-3">⏰ Time In: <strong>{{ attendance.time_in|date:"H:i" }}</strong></p>
+      <p class="mt-1">⏰ Time Out: <strong>{{ attendance.time_out|date:"H:i" }}</strong></p>
       <p class="text-muted">You’ve completed your attendance for today.</p>
+
     {% else %}
       <p class="mt-3">⏰ Current Time: <strong id="current-time"></strong></p>
       <form method="post">
@@ -58,5 +61,4 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 </script>
-
 {% endblock %}

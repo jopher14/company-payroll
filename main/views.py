@@ -9,8 +9,10 @@ from .models import Announcement
 def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "main/dashboard.html")
 
+
 def is_hr(user):
     return user.role == "human_resources" or user.is_superuser
+
 
 @login_required
 @user_passes_test(is_hr)
@@ -25,6 +27,7 @@ def create_announcement(request):
     else:
         form = AnnouncementForm()
     return render(request, "announcement/create_announcement.html", {"form": form})
+
 
 @login_required
 def announcement_list(request):

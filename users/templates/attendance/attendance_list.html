@@ -1,0 +1,108 @@
+{% extends "main/base.html" %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg p-4 rounded-4 border-0">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="fw-bold mb-0">📋 Attendance Records</h3>
+      <div class="d-flex gap-2">
+        {% if request.user.role == "supervisor" or request.user.role == "employee" %}
+          <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-primary btn-sm">
+            ⏱ Overtime
+          </a>
+        {% endif %}
+        <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-secondary btn-sm">
+          ⬅ Back
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered align-middle text-center">
+        <thead class="table-dark">
+          <tr>
+            <th scope="col">Employee</th>
+            <th scope="col">Date</th>
+            <th scope="col">Actual In</th>
+            <th scope="col">Actual Out</th>
+            <th scope="col">Scheduled In</th>
+            <th scope="col">Scheduled Out</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attendance in page_obj %}
+            {% with schedule=attendance.employee.schedule.first %}
+            <tr>
+              <td class="fw-semibold">
+                {% if attendance.employee.first_name %}
+                  {{ attendance.employee.first_name }}
+                {% else %}
+                  {{ attendance.employee.username }}
+                {% endif %}
+              </td>
+              <td>{{ attendance.date|date:"M d, Y" }}</td>
+              <td>
+                {% if attendance.time_in %}
+                  <span class="badge bg-success">{{ attendance.time_in|time:"H:i" }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if attendance.time_out %}
+                  <span class="badge bg-danger">{{ attendance.time_out|time:"H:i" }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if schedule %}
+                  <span class="badge bg-primary">{{ schedule.time_in|time:"H:i" }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if schedule %}
+                  <span class="badge bg-primary">{{ schedule.time_out|time:"H:i" }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-muted py-4">No attendance records found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ✅ Pagination controls -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <small class="text-muted">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </small>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}">« Prev</a>
+            </li>
+          {% endif %}
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next »</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "main/base.html" %}
+
+{% block title %}Request Overtime{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">  
+      <div class="card shadow-lg p-4 rounded-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="fw-bold mb-0">⏱ Request Overtime</h3>
+          <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-primary btn-sm">
+            ⬅ Back
+          </a>
+        </div>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Date Field -->
+          <div class="mb-3">
+            <label for="id_date" class="form-label fw-semibold">📅 Date</label>
+            <input type="date" name="date" id="id_date" 
+                   class="form-control rounded-3 {% if form.date.errors %}is-invalid{% endif %}" 
+                   value="{{ form.date.value|default_if_none:'' }}">
+            {% for error in form.date.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Hours Field -->
+          <div class="mb-3">
+            <label for="id_hours" class="form-label fw-semibold">⏳ Hours</label>
+            <input type="number" name="hours" id="id_hours" 
+                   class="form-control rounded-3 {% if form.hours.errors %}is-invalid{% endif %}" 
+                   value="{{ form.hours.value|default_if_none:'' }}" 
+                   min="1" step="0.5" placeholder="Enter number of hours">
+            {% for error in form.hours.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Reason Field -->
+          <div class="mb-3">
+            <label for="id_reason" class="form-label fw-semibold">📝 Reason</label>
+            <textarea name="reason" id="id_reason" rows="3"
+                      class="form-control rounded-3 {% if form.reason.errors %}is-invalid{% endif %}"
+                      placeholder="Enter reason for overtime">{{ form.reason.value }}</textarea>
+            {% for error in form.reason.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Buttons -->
+          <div class="d-flex justify-content-between mt-4">
+            <button type="reset" class="btn btn-outline-secondary rounded-3">Clear</button>
+            <button type="submit" class="btn btn-primary rounded-3">
+              ✅ Submit Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

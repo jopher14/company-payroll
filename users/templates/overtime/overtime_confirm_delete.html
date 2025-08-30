@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+{% block title %}Delete Overtime Request{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg p-4 rounded-4 border-0 text-center">
+    <h3 class="fw-bold mb-3 text-danger">🗑 Delete Overtime Request</h3>
+    <p>Are you sure you want to delete your overtime request for 
+       <strong>{{ overtime.date }}</strong> ({{ overtime.hours }} hours)?</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <a href="{% url 'users:overtime_list' %}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

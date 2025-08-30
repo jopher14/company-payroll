@@ -1,16 +1,16 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Leave, Attendance, Schedule
+from .models import User, Leave, Attendance, Schedule, Overtime
 
 
 class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
+    class Meta:
         model = User
         fields = ("username", "email", "password1", "password2", "role")  # include role
 
 
 class EmployeeRegistrationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
+    class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
 
@@ -71,9 +71,11 @@ class AttendanceForm(forms.ModelForm):
 
 TIME_CHOICES = [(f"{h:02d}:{m:02d}", f"{h:02d}:{m:02d}") for h in range(0, 24) for m in (0, 30)]
 
+
 class ScheduleForm(forms.ModelForm):
     time_in = forms.ChoiceField(choices=TIME_CHOICES, label="Time In")
     time_out = forms.ChoiceField(choices=TIME_CHOICES, label="Time Out")
+
     class Meta:
         model = Schedule
         fields = ['employee', 'time_in', 'time_out']
@@ -114,3 +116,22 @@ class EmployeeUpdateForm(forms.ModelForm):
         self.fields['role'].choices = [
             (role, label) for role, label in self.fields['role'].choices if role != 'admin'
         ]
+
+
+class OvertimeForm(forms.ModelForm):
+    class Meta:
+        model = Overtime
+        fields = ["date", "hours", "reason"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "hours": forms.NumberInput(attrs={
+                "class": "form-control",
+                "step": "0.25",
+                "placeholder": "Enter total hours (e.g., 1.5, 2, 4.25)"
+            }),
+            "reason": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Enter reason for overtime"
+            }),
+        }
