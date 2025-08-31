@@ -45,14 +45,16 @@
               <td>{{ attendance.date|date:"M d, Y" }}</td>
               <td>
                 {% if attendance.time_in %}
-                  <span class="badge bg-success">{{ attendance.time_in|time:"H:i" }}</span>
+                  <span class="badge {% if attendance.is_late %}bg-danger{% else %}bg-success{% endif %}">
+                    {{ attendance.time_in|time:"H:i" }}
+                  </span>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}
               </td>
               <td>
                 {% if attendance.time_out %}
-                  <span class="badge bg-danger">{{ attendance.time_out|time:"H:i" }}</span>
+                  <span class="badge bg-success">{{ attendance.time_out|time:"H:i" }}</span>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}

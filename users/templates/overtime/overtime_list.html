@@ -29,11 +29,33 @@
         <td>{{ ot.reason|default:"—" }}</td>
         <td>
           {% if request.user == ot.employee %}
+            <!-- Request owner can edit/delete if still pending -->
             <a href="{% url 'users:overtime_edit' ot.id %}" class="btn btn-sm btn-primary">Edit</a>
             <a href="{% url 'users:overtime_delete' ot.id %}" class="btn btn-sm btn-danger"
                onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
+          
           {% else %}
-            <span class="text-muted">—</span>
+            <!-- Approval logic -->
+            {% if ot.employee.role == "employee" %}
+              {% if request.user.role == "supervisor" or request.user.role == "manager" %}
+                <a href="{% url 'users:overtime_approve' ot.id %}" class="btn btn-sm btn-success">Approve</a>
+                <a href="{% url 'users:overtime_reject' ot.id %}" class="btn btn-sm btn-danger">Reject</a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+
+            {% elif ot.employee.role == "supervisor" %}
+              {% if request.user.role == "manager" %}
+                <a href="{% url 'users:overtime_approve' ot.id %}" class="btn btn-sm btn-success">Approve</a>
+                <a href="{% url 'users:overtime_reject' ot.id %}" class="btn btn-sm btn-danger">Reject</a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+
+            {% elif ot.employee.role == "manager" %}
+              <!-- No one can approve manager's OT -->
+              <span class="text-muted">—</span>
+            {% endif %}
           {% endif %}
         </td>
       </tr>
@@ -68,6 +90,8 @@
             <span class="badge bg-success">✔ Approved</span>
           {% elif ot.status == "rejected" %}
             <span class="badge bg-danger">✖ Rejected</span>
+          {% else %}
+            <span class="badge bg-secondary">Pending</span>
           {% endif %}
         </td>
         <td>{{ ot.reviewed_by.get_full_name|default_if_none:"—" }}</td>

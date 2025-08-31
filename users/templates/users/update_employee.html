@@ -12,12 +12,16 @@
             <div class="row">
                 <!-- Photo -->
                 <div class="text-center mb-3">
-                    {% if employee.photo %}
-                        <img src="{{ employee.photo.url }}" alt="Profile Photo" class="img-thumbnail mb-2" width="150">
-                    {% else %}
-                        <img src="/media/DefaultPhoto.jpg" alt="Default Photo" class="img-thumbnail mb-2" width="150">
-                    {% endif %}
-                    {{ form.photo }}
+                    <!-- Always show default first -->
+                    <img id="photo-preview" 
+                        src="/media/photos/DefaultPhoto.jpg" 
+                        alt="Profile Photo" 
+                        class="img-thumbnail mb-2 d-block mx-auto" 
+                        width="150">
+
+                    <div class="mt-2">
+                        {{ form.photo }}
+                    </div>
                 </div>
 
                 <!-- Left Column -->
@@ -88,7 +92,7 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const photoInput = document.querySelector("input[name='photo']");
-    const preview = document.querySelector(".mb-4.text-center img");
+    const preview = document.getElementById("photo-preview");
 
     if (photoInput) {
       photoInput.addEventListener("change", function () {
@@ -99,6 +103,9 @@
             preview.src = e.target.result;
           };
           reader.readAsDataURL(file);
+        } else {
+          // if no file chosen, revert to default
+          preview.src = "/media/photos/default.png";
         }
       });
     }

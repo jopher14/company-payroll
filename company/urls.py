@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from . import views
 
 urlpatterns = [
     # admin app
@@ -33,6 +34,8 @@ urlpatterns = [
 
     # payroll app
     path('payroll/', include('payroll.urls')),
+
+    path(route=".well-known/appspecific/com.chrome.devtools.json", view=views.chrome_devtools_config),
 ]
 
 if settings.DEBUG:

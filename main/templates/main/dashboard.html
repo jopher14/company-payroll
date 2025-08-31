@@ -49,6 +49,12 @@
             <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-primary btn-lg">
               <i class="bi bi-calendar2-check me-1"></i> Set Schedule
             </a>
+            <a href="{% url 'users:pending_leaves' %}" class="btn btn-warning btn-lg text-dark">
+              <i class="bi bi-file-earmark-text me-1"></i> Check Leave Requests
+            </a>
+            <a href="{% url 'users:pending_overtimes' %}" class="btn btn-warning btn-lg text-dark">
+              <i class="bi bi-file-earmark-text me-1"></i> Check Overtime Requests
+            </a>
             <a href="{% url 'users:log_attendance' %}" class="btn btn-success btn-lg">
               <i class="bi bi-clock me-1"></i> Time In / Time Out
             </a>

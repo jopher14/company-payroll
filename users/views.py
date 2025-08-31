@@ -1,14 +1,14 @@
+from typing import cast, Any
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import User, Leave, Attendance, Schedule, Overtime
 from django.http import HttpResponse, HttpRequest
-from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm
+from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm
 from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.timezone import now, localtime
-from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 
@@ -24,6 +24,19 @@ def manager_dashboard(request: HttpRequest) -> HttpResponse:
         return HttpResponseForbidden("You are not allowed to access this page.")
 
     return render(request, "manager_dashboard.html", {"user": user})
+
+
+@login_required
+def register(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f"User: {user.username} registered successfully!")
+            return redirect("employee_list")
+    else:
+        form = UserRegistrationForm()
+    return render(request, "users/register.html", {"form": form})
 
 
 def loginView(request: HttpRequest) -> HttpResponse:
@@ -107,56 +120,87 @@ def is_supervisor(user):
 
 
 @login_required
-@user_passes_test(is_supervisor)
 def pending_leaves(request: HttpRequest) -> HttpResponse:
-    leaves = Leave.objects.filter(status="Pending").order_by("created_at")
+    user = cast(User, request.user)
+
+    if user.role == "manager":
+        # Manager sees supervisor + employee requests
+        leaves = Leave.objects.filter(
+            employee__role__in=["supervisor", "employee"], status="Pending"
+        )
+    elif user.role == "supervisor":
+        # Supervisor sees employee requests
+        leaves = Leave.objects.filter(
+            employee__role="employee", status="Pending"
+        )
+    else:
+        # Employees only see their own leave requests
+        leaves = Leave.objects.filter(employee=user)
+
     return render(request, "leave/pending_leaves.html", {"leaves": leaves})
 
 
 @login_required
-@user_passes_test(is_supervisor)
-def approve_leave(request: HttpRequest, pk) -> HttpResponse:
+def approve_leave(request: HttpRequest, pk: int) -> HttpResponse:
     leave = get_object_or_404(Leave, pk=pk)
+
+    reviewer = request.user
+    if not isinstance(reviewer, User):
+        return HttpResponse("Invalid user", status=400)
+
+    # Rule: Employee → Supervisor approves
+    if leave.employee.role == "employee" and reviewer.role != "supervisor":
+        return HttpResponse("Only supervisors can approve employee leaves.", status=403)
+
+    # Rule: Supervisor → Manager approves
+    if leave.employee.role == "supervisor" and reviewer.role != "manager":
+        return HttpResponse("Only managers can approve supervisor leaves.", status=403)
 
     if leave.status != "Pending":
         messages.warning(request, "This leave request has already been processed.")
     else:
-        leave = get_object_or_404(Leave, pk=pk, status="Pending")
         leave.status = "Approved"
-
-        # Tell mypy that request.user is a User
-        supervisor = request.user
-        if not isinstance(supervisor, User):
-            # This should never happen due to @login_required and is_supervisor
-            return HttpResponse("Invalid user", status=400)
-
-        leave.supervisor = supervisor
+        leave.reviewed_by = reviewer   # ✅ suggest renaming Leave.supervisor → reviewed_by
         leave.reviewed_at = now()
         leave.save()
+
+        messages.success(
+            request,
+            f"Leave for {leave.employee.get_full_name() or leave.employee.username} approved."
+        )
 
     return redirect("users:pending_leaves")
 
 
 @login_required
-@user_passes_test(is_supervisor)
-def reject_leave(request: HttpRequest, pk) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk, status="Pending")
-    leave.status = "Rejected"
+def reject_leave(request: HttpRequest, pk: int) -> HttpResponse:
+    leave = get_object_or_404(Leave, pk=pk)
 
-    # Tell mypy that request.user is a User
-    supervisor = request.user
-    if not isinstance(supervisor, User):
-        # This should never happen due to decorators
+    reviewer = request.user
+    if not isinstance(reviewer, User):
         return HttpResponse("Invalid user", status=400)
 
-    leave.supervisor = supervisor
-    leave.reviewed_at = timezone.now()
-    leave.save()
+    # Rule: Employee → Supervisor rejects
+    if leave.employee.role == "employee" and reviewer.role != "supervisor":
+        return HttpResponse("Only supervisors can reject employee leaves.", status=403)
 
-    messages.success(
-        request,
-        f"Leave for {leave.employee.get_full_name() or leave.employee.username} rejected."
-    )
+    # Rule: Supervisor → Manager rejects
+    if leave.employee.role == "supervisor" and reviewer.role != "manager":
+        return HttpResponse("Only managers can reject supervisor leaves.", status=403)
+
+    if leave.status != "Pending":
+        messages.warning(request, "This leave request has already been processed.")
+    else:
+        leave.status = "Rejected"
+        leave.reviewed_by = reviewer
+        leave.reviewed_at = now()
+        leave.save()
+
+        messages.success(
+            request,
+            f"Leave for {leave.employee.get_full_name() or leave.employee.username} rejected."
+        )
+
     return redirect("users:pending_leaves")
 
 
@@ -190,7 +234,7 @@ def set_schedule(request: HttpRequest) -> HttpResponse:
     else:
         form = ScheduleForm(instance=instance)
 
-    return render(request, "users/set_schedule.html", {"form": form})
+    return render(request, "attendance/set_schedule.html", {"form": form})
 
 
 @login_required
@@ -231,16 +275,13 @@ def log_attendance(request: HttpRequest) -> HttpResponse:
 def attendance_list(request: HttpRequest) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # Should never happen due to @login_required
         return HttpResponse("Invalid user", status=400)
 
     if user.role == "manager":
-        # Manager sees all supervisors and employees (exclude managers)
         attendances = Attendance.objects.select_related("employee").filter(
             employee__role__in=["supervisor", "employee"]
         ).order_by("-date")
     else:
-        # Employee/supervisor sees only their own
         attendances = Attendance.objects.filter(
             employee=user,
             employee__role__in=["supervisor", "employee"]
@@ -250,6 +291,19 @@ def attendance_list(request: HttpRequest) -> HttpResponse:
     paginator = Paginator(attendances, 5)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+
+    # ✅ Add late/undertime flags for template
+    for att in page_obj:
+        att = cast(Any, att)
+        schedule = att.employee.schedule.first() if hasattr(att.employee, "schedule") else None
+        att.is_late = False
+        att.is_undertime = False
+
+        if schedule:
+            if att.time_in and att.time_in > schedule.time_in:
+                att.is_late = True
+            if att.time_out and att.time_out < schedule.time_out:
+                att.is_undertime = True
 
     return render(request, "attendance/attendance_list.html", {
         "page_obj": page_obj,
@@ -267,7 +321,7 @@ def update_employee(request: HttpRequest, pk) -> HttpResponse:
     employee = get_object_or_404(User, pk=pk)
 
     if request.method == "POST":
-        form = EmployeeUpdateForm(request.POST, request.FILES, instance=employee)  # ✅ include request.FILES
+        form = EmployeeUpdateForm(request.POST, request.FILES, instance=employee)
         if form.is_valid():
             form.save()
             return redirect('users:employee_list')
@@ -353,14 +407,31 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
 def overtime_approve(request: HttpRequest, pk) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # Should never happen because of @login_required
         return HttpResponse("Invalid user", status=400)
 
-    if user.role == "manager":
-        overtime = get_object_or_404(Overtime, pk=pk)
-        overtime.status = "approved"
-        overtime.save()
-        messages.success(request, "Overtime approved successfully ✅")
+    overtime = get_object_or_404(Overtime, pk=pk)
+
+    # Approval logic
+    if overtime.employee.role == "employee":
+        if user.role in ["supervisor", "manager"]:
+            overtime.status = "approved"
+            overtime.reviewed_by = user
+            overtime.save()
+            messages.success(request, "Overtime approved successfully ✅")
+        else:
+            messages.error(request, "You are not authorized to approve this request ❌")
+
+    elif overtime.employee.role == "supervisor":
+        if user.role == "manager":
+            overtime.status = "approved"
+            overtime.reviewed_by = user
+            overtime.save()
+            messages.success(request, "Overtime approved successfully ✅")
+        else:
+            messages.error(request, "You are not authorized to approve this request ❌")
+
+    elif overtime.employee.role == "manager":
+        messages.error(request, "Manager's overtime cannot be approved ❌")
 
     return redirect("users:overtime_list")
 
@@ -369,14 +440,31 @@ def overtime_approve(request: HttpRequest, pk) -> HttpResponse:
 def overtime_reject(request: HttpRequest, pk) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # Should never happen because of @login_required
         return HttpResponse("Invalid user", status=400)
 
-    if user.role == "manager":
-        overtime = get_object_or_404(Overtime, pk=pk)
-        overtime.status = "rejected"
-        overtime.save()
-        messages.warning(request, "Overtime rejected ❌")
+    overtime = get_object_or_404(Overtime, pk=pk)
+
+    # Rejection logic
+    if overtime.employee.role == "employee":
+        if user.role in ["supervisor", "manager"]:
+            overtime.status = "rejected"
+            overtime.reviewed_by = user
+            overtime.save()
+            messages.warning(request, "Overtime rejected ❌")
+        else:
+            messages.error(request, "You are not authorized to reject this request ❌")
+
+    elif overtime.employee.role == "supervisor":
+        if user.role == "manager":
+            overtime.status = "rejected"
+            overtime.reviewed_by = user
+            overtime.save()
+            messages.warning(request, "Overtime rejected ❌")
+        else:
+            messages.error(request, "You are not authorized to reject this request ❌")
+
+    elif overtime.employee.role == "manager":
+        messages.error(request, "Manager's overtime cannot be rejected ❌")
 
     return redirect("users:overtime_list")
 

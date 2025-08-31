@@ -34,7 +34,7 @@ class User(AbstractUser):
         upload_to='photos/',
         blank=True,
         null=True,
-        default='photos/default.png'  # 👈 default photo
+        default='photos/default.png'
     )
 
     # government IDs
@@ -81,7 +81,13 @@ class Leave(models.Model):
         blank=True,
         related_name="approved_leaves"
     )
-
+    reviewed_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_leaves"
+    )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
