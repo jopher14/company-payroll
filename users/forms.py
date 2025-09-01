@@ -92,7 +92,7 @@ class EmployeeUpdateForm(forms.ModelForm):
         fields = [
             'first_name', 'last_name', 'role', 'birthday', 'contact_number',
             'status', 'employee_id', 'photo',
-            'sss', 'tin', 'pagibig', 'philhealth'
+            'sss', 'tin', 'pagibig', 'philhealth', 'salary'
         ]
         widgets = {
             'role': forms.Select(attrs={'class': 'form-select'}),
@@ -108,7 +108,14 @@ class EmployeeUpdateForm(forms.ModelForm):
             'tin': forms.TextInput(attrs={'class': 'form-control'}),
             'pagibig': forms.TextInput(attrs={'class': 'form-control'}),
             'philhealth': forms.TextInput(attrs={'class': 'form-control'}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
+
+    def clean_salary(self):
+        salary = self.cleaned_data.get('salary')
+        if isinstance(salary, str):
+            salary = salary.replace(',', '')
+        return salary
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

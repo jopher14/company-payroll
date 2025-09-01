@@ -1,4 +1,5 @@
 {% extends "main/base.html" %}
+{% load humanize %}
 {% load widget_tweaks %}
 {% block title %}Update Employee{% endblock %}
 
@@ -58,9 +59,10 @@
                     </div>
                 </div>
 
-                <!-- Right Column (aligned with First Name) -->
+                <!-- Right Column (Government IDs + Salary) -->
                 <div class="col-md-6">
-                    <h5 class="mb-3">Government IDs</h5>
+                    <h5 class="mb-3">Government IDs & Salary</h5>
+
                     <div class="mb-3">
                         {{ form.sss.label_tag }}
                         {{ form.sss }}
@@ -77,8 +79,16 @@
                         {{ form.philhealth.label_tag }}
                         {{ form.philhealth }}
                     </div>
+
+                    <!-- Salary with auto-comma formatting -->
+                    <div class="mb-3">
+                        <label for="{{ form.salary.id_for_label }}">Salary</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            {{ form.salary|attr:"id:salary-input, class:form-control" }}
+                        </div>
+                    </div>
                 </div>
-            </div>
 
             <!-- Buttons -->
             <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
@@ -110,5 +120,26 @@
       });
     }
   });
+</script>
+
+<!-- JavaScript for auto-formatting salary -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const salaryInput = document.getElementById("salary-input");
+
+    function formatNumberWithCommas(value) {
+        return value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    salaryInput.addEventListener("input", function(e) {
+        const caret = this.selectionStart;
+        const originalLength = this.value.length;
+
+        this.value = formatNumberWithCommas(this.value);
+
+        const newLength = this.value.length;
+        this.selectionEnd = caret + (newLength - originalLength);
+    });
+});
 </script>
 {% endblock %}

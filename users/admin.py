@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, Leave, Attendance, Schedule, Overtime
+from payroll.models import Payroll
 
 
 class UserAdmin(BaseUserAdmin):
@@ -83,3 +84,10 @@ class OvertimeAdmin(admin.ModelAdmin):
     @admin.display(description="Approved By")
     def get_approved_by(self, obj):
         return obj.reviewed_by.get_full_name() if obj.reviewed_by else "—"
+
+
+class PayrollInline(admin.TabularInline):  # Or admin.StackedInline
+    model = Payroll
+    extra = 0
+    fields = ("basic_salary", "sss", "philhealth", "pagibig", "withholding_tax", "net_pay", "created_at")
+    readonly_fields = ("created_at",)

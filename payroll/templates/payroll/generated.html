@@ -1,0 +1,39 @@
+{% extends "main/base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h3>💰 Payroll Report</h3>
+
+  {% if payrolls %}
+  <table class="table table-bordered table-striped mt-3">
+    <thead class="table-dark">
+      <tr>
+        <th>Employee</th>
+        <th>Basic Salary</th>
+        <th>SSS</th>
+        <th>PhilHealth</th>
+        <th>Pag-IBIG</th>
+        <th>Withholding Tax</th>
+        <th>Net Pay</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in payrolls %}
+      <tr>
+        <td>{{ p.employee.get_full_name|default:p.employee.username }}</td>
+        <td>₱{{ p.basic_salary|floatformat:2 }}</td>
+        <td>₱{{ p.sss|floatformat:2 }}</td>
+        <td>₱{{ p.philhealth|floatformat:2 }}</td>
+        <td>₱{{ p.pagibig|floatformat:2 }}</td>
+        <td>₱{{ p.withholding_tax|floatformat:2 }}</td>
+        <td><strong>₱{{ p.net_pay|floatformat:2 }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="text-center text-muted">No payroll records found.</p>
+  {% endif %}
+
+  <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mt-3">⬅ Back to Dashboard</a>
+</div>
+{% endblock %}

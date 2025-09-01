@@ -38,6 +38,7 @@ class User(AbstractUser):
     )
 
     # government IDs
+    salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     sss = models.CharField(max_length=20, blank=True, null=True)
     tin = models.CharField(max_length=20, blank=True, null=True)
     pagibig = models.CharField(max_length=20, blank=True, null=True)

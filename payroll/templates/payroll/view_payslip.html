@@ -1,17 +1,43 @@
 {% extends "main/base.html" %}
-{% block title %}Payslip - {{ payslip.month }}{% endblock %}
+{% block title %}Payslip - {{ payslip.month|date:"F Y" }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 600px;">
-    <div class="card shadow p-4">
-        <h3 class="text-center mb-4">Payslip - {{ payslip.month }}</h3>
-        <p><strong>Employee:</strong> {{ payslip.employee.get_full_name|default:payslip.employee.username }}</p>
-        <p><strong>Basic Salary:</strong> {{ payslip.basic_salary }}</p>
-        <p><strong>Allowances:</strong> {{ payslip.allowances }}</p>
-        <p><strong>Deductions:</strong> {{ payslip.deductions }}</p>
-        <p><strong>Net Salary:</strong> {{ payslip.net_salary }}</p>
-        <p><strong>Generated At:</strong> {{ payslip.generated_at|date:"d M Y H:i" }}</p>
-        <a href="{% url 'my_payslips' %}" class="btn btn-secondary mt-3 w-100">Back</a>
-    </div>
+<div class="container mt-5">
+    <h3>Payslip for {{ payslip.month|date:"F Y" }}</h3>
+    <table class="table table-bordered mt-3">
+        <tr>
+            <th>Basic Salary</th>
+            <td>{{ payslip.basic_salary }}</td>
+        </tr>
+        <tr>
+            <th>Allowances</th>
+            <td>{{ payslip.allowances }}</td>
+        </tr>
+        <tr>
+            <th>Deductions</th>
+            <td>{{ payslip.deductions }}</td>
+        </tr>
+        <tr>
+            <th>Net Salary</th>
+            <td>{{ payslip.net_pay }}</td>
+        </tr>
+        <tr>
+            <th>SSS</th>
+            <td>{{ payslip.sss }}</td>
+        </tr>
+        <tr>
+            <th>PhilHealth</th>
+            <td>{{ payslip.philhealth }}</td>
+        </tr>
+        <tr>
+            <th>Pag-IBIG</th>
+            <td>{{ payslip.pagibig }}</td>
+        </tr>
+        <tr>
+            <th>Generated On</th>
+            <td>{{ payslip.created_at|date:"M d, Y H:i" }}</td>
+        </tr>
+    </table>
+    <a href="{% url 'payroll:my_payslips' %}" class="btn btn-secondary mt-3">Back to Payslips</a>
 </div>
 {% endblock %}

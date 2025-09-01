@@ -22,8 +22,8 @@
               <th scope="col">Name</th>
               <th scope="col">Position</th>
               <th scope="col">Status</th>
-              <th scope="col">Scheduled Time</th>
-              <th scope="col">Actions</th> <!-- New column -->
+              <th scope="col">Salary</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -40,8 +40,8 @@
                 {% endif %}
               </td>
               <td>
-                {% if att.schedule %}
-                  🕒 {{ att.schedule.time_in|time:"H:i" }} - {{ att.schedule.time_out|time:"H:i" }}
+                {% if emp.salary %}
+                  ₱ {{ emp.salary|floatformat:2 }}
                 {% else %}
                   <span class="text-muted">Not set</span>
                 {% endif %}
