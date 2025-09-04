@@ -29,22 +29,6 @@
     <form method="post" id="loginForm" novalidate>
       {% csrf_token %}
 
-      <!-- Employee ID -->
-      <div class="form-floating mb-3">
-        <input 
-          type="text" 
-          class="form-control" 
-          name="employee_id" 
-          id="employee_id" 
-          placeholder="Employee ID" 
-          value="{{ request.POST.employee_id|default:'' }}" 
-          required>
-        <label for="employee_id">Employee ID</label>
-        <div class="invalid-feedback">
-          This field is required.
-        </div>
-      </div>
-
       <!-- Username -->
       <div class="form-floating mb-3">
         <input 

@@ -33,7 +33,7 @@ def register(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             user = form.save()
             messages.success(request, f"User: {user.username} registered successfully!")
-            return redirect("employee_list")
+            return redirect("users:employee_list")
     else:
         form = UserRegistrationForm()
     return render(request, "users/register.html", {"form": form})
@@ -335,8 +335,22 @@ def update_employee(request: HttpRequest, pk) -> HttpResponse:
 
 
 @login_required
-def overtime_list(request):
-    user = request.user
+@user_passes_test(is_hr)
+def delete_employee(request: HttpRequest, pk) -> HttpResponse:
+    employee = get_object_or_404(User, pk=pk)
+
+    if request.method == "POST":
+        employee.delete()
+        messages.success(request, "Employee deleted successfully.")
+        return redirect("users:employee_list")
+
+    messages.error(request, "Invalid request.")
+    return redirect("users:employee_list")
+
+
+@login_required
+def overtime_list(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
 
     if user.role == "employee":
         # Employee sees their own requests

@@ -24,28 +24,15 @@ class EmployeeRegistrationForm(UserCreationForm):
 
 class UserRegistrationForm(UserCreationForm):
     """For HR creating users with Employee ID"""
-    employee_id = forms.CharField(
-        max_length=20,
-        required=True,
-        label="Employee ID",
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Employee ID"})
-    )
 
     class Meta:
         model = User
-        fields = ["employee_id", "username", "email", "role", "password1", "password2"]
+        fields = ["username", "email", "role", "password1", "password2"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({"class": "form-control"})
-
-    def clean_employee_id(self):
-        """Ensure employee_id is unique"""
-        employee_id = self.cleaned_data.get("employee_id")
-        if User.objects.filter(employee_id=employee_id).exists():
-            raise forms.ValidationError("This Employee ID is already registered.")
-        return employee_id
 
 
 class LeaveForm(forms.ModelForm):
@@ -91,7 +78,7 @@ class EmployeeUpdateForm(forms.ModelForm):
         model = User
         fields = [
             'first_name', 'last_name', 'role', 'birthday', 'contact_number',
-            'status', 'employee_id', 'photo',
+            'status', 'photo',
             'sss', 'tin', 'pagibig', 'philhealth', 'salary'
         ]
         widgets = {
@@ -101,7 +88,6 @@ class EmployeeUpdateForm(forms.ModelForm):
             'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
 
             'sss': forms.TextInput(attrs={'class': 'form-control'}),

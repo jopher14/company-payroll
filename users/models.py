@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from decimal import Decimal
 
 
 class User(AbstractUser):
@@ -26,7 +27,6 @@ class User(AbstractUser):
         (INACTIVE, "Inactive"),
     ]
 
-    employee_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     position = models.CharField(max_length=100, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=EMPLOYEE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=ACTIVE)
@@ -43,6 +43,7 @@ class User(AbstractUser):
     tin = models.CharField(max_length=20, blank=True, null=True)
     pagibig = models.CharField(max_length=20, blank=True, null=True)
     philhealth = models.CharField(max_length=20, blank=True, null=True)
+    allowances = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))  # ✅ add this
 
     birthday = models.DateField(null=True, blank=True)
     contact_number = models.CharField(max_length=15, null=True, blank=True)

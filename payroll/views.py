@@ -6,8 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest
 from django.contrib import messages
 from .utils import compute_sss, compute_philhealth, compute_pagibig, compute_withholding_tax
-from collections import defaultdict
 from decimal import Decimal
+from datetime import datetime
 
 
 @login_required
@@ -16,15 +16,25 @@ def my_payslips(request: HttpRequest) -> HttpResponse:
     assert user.is_authenticated
 
     payslips = Payroll.objects.filter(employee=user)
-    return render(request, "payroll/my_payslips.html", {"payslips": payslips})
+    return render(request, "payroll/my_payslip.html", {"payslips": payslips})
 
 
 @login_required
-def view_payslip(request: HttpRequest, pk: int) -> HttpResponse:
-    # Get the payslip or return 404
-    payslip = get_object_or_404(Payroll, pk=pk, employee=request.user)  # only their own payslip
+def view_payslip(request, pk):
+    payslip = get_object_or_404(Payroll, pk=pk)
 
-    return render(request, 'payroll/view_payslip.html', {'payslip': payslip})
+    # Compute deductions if not stored already
+    gross_salary = payslip.basic_salary + payslip.allowances
+    deductions = payslip.sss + payslip.philhealth + payslip.pagibig + payslip.withholding_tax
+    net_pay = gross_salary - deductions
+
+    context = {
+        "payslip": payslip,
+        "gross_salary": gross_salary,
+        "deductions": deductions,
+        "net_pay": net_pay,
+    }
+    return render(request, "payroll/my_payslip.html", context)
 
 
 @login_required
@@ -34,15 +44,16 @@ def payroll_report(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def payroll_list(request: HttpRequest) -> HttpResponse:
-    payrolls = Payroll.objects.select_related("employee")
+def payroll_list(request):
+    user = request.user
 
-    grouped = defaultdict(list)
-    for p in payrolls:
-        grouped[p.employee.role].append(p)
+    if user.role == "human_resources":
+        payrolls = Payroll.objects.all().select_related("employee")
+    else:
+        payrolls = Payroll.objects.filter(employee=user).select_related("employee")
 
     context = {
-        "grouped_payrolls": grouped
+        "payrolls": payrolls,
     }
     return render(request, "payroll/payroll_list.html", context)
 
@@ -50,34 +61,70 @@ def payroll_list(request: HttpRequest) -> HttpResponse:
 @login_required
 def generate_payroll(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
-    if user.role != "human_resources":  # Only HR allowed
+    if user.role != "human_resources":
         messages.error(request, "You are not authorized to generate payroll.")
         return redirect("payroll:payroll_list")
 
-    employees = User.objects.filter(role__in=["employee", "supervisor", "manager"])
+    today = datetime.now()
+    month = today.month
+    year = today.year
 
-    for emp in employees:
-        salary: Decimal = emp.salary or Decimal("0.00")
+    if request.method == "POST":
+        period = cast(str, request.POST.get("period"))
 
-        # Compute deductions (all return Decimal)
-        sss = compute_sss(salary)
-        philhealth = compute_philhealth(salary)
-        pagibig = compute_pagibig(salary)
-        tax = compute_withholding_tax(salary)
+        employees = User.objects.filter(role__in=["employee", "supervisor", "manager"])
+        skipped = []
 
-        total_deductions: Decimal = sss + philhealth + pagibig + tax
-        net_pay: Decimal = salary - total_deductions
+        for emp in employees:
+            salary: Decimal = emp.salary or Decimal("0.00")
+            allowances: Decimal = emp.allowances or Decimal("0.00")
 
-        Payroll.objects.create(
-            employee=emp,
-            basic_salary=salary,
-            sss=sss,
-            philhealth=philhealth,
-            pagibig=pagibig,
-            withholding_tax=tax,
-            total_deductions=total_deductions,
-            net_pay=net_pay,
+            # ✅ Half salary + half deductions
+            half_salary = salary / 2
+            half_allowances = allowances / 2
+            sss = compute_sss(salary) / 2
+            philhealth = compute_philhealth(salary) / 2
+            pagibig = compute_pagibig(salary) / 2
+            tax = compute_withholding_tax(salary) / 2
+
+            total_deductions = sss + philhealth + pagibig + tax
+            net_pay = half_salary + half_allowances - total_deductions
+
+            # ✅ Prevent duplicates
+            exists = Payroll.objects.filter(
+                employee=emp, month=month, year=year, period=period
+            ).exists()
+
+            if exists:
+                skipped.append(emp.get_full_name() or emp.username)
+                continue
+
+            Payroll.objects.create(
+                employee=emp,
+                month=month,
+                year=year,
+                period=period,
+                basic_salary=half_salary,
+                allowances=half_allowances,
+                sss=sss,
+                philhealth=philhealth,
+                pagibig=pagibig,
+                withholding_tax=tax,
+                total_deductions=total_deductions,
+                net_pay=net_pay,
+            )
+
+        if skipped:
+            messages.warning(
+                request,
+                f"Some payrolls already exist and were skipped: {', '.join(skipped)}",
+            )
+        messages.success(
+            request,
+            f"Payroll generated for {today.strftime('%B %Y')} ({period.replace('_', ' ').title()})!"
         )
 
-    messages.success(request, "Payroll successfully generated for all employees!")
-    return redirect("payroll:payroll_list")  # <-- redirect to payroll list
+        return redirect("payroll:payroll_list")
+
+    # GET → Show selection form
+    return render(request, "payroll/generate_form.html")

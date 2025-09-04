@@ -7,7 +7,7 @@ class PayrollAdmin(admin.ModelAdmin):
     list_display = (
         "employee",
         "basic_salary",
-        "allowances",
+        "get_allowances",
         "sss",
         "philhealth",
         "pagibig",
@@ -17,3 +17,7 @@ class PayrollAdmin(admin.ModelAdmin):
     )
     search_fields = ("employee__username", "employee__first_name", "employee__last_name")
     list_filter = ("created_at",)
+
+    @admin.display(description="Allowances")
+    def get_allowances(self, obj):
+        return obj.employee.allowances  # pulls from User model

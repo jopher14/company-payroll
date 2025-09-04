@@ -27,7 +27,7 @@
             <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary btn-lg">
               <i class="bi bi-people me-1"></i> Manage Employees
             </a>
-            <a href="{% url 'payroll:generated' %}" class="btn btn-success">
+            <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">
               💰 Generate Payroll
             </a>
           </div>
@@ -58,6 +58,9 @@
             <a href="{% url 'users:pending_overtimes' %}" class="btn btn-warning btn-lg text-dark">
               <i class="bi bi-file-earmark-text me-1"></i> Check Overtime Requests
             </a>
+            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success btn-lg">
+              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
+            </a>
             <a href="{% url 'users:log_attendance' %}" class="btn btn-success btn-lg">
               <i class="bi bi-clock me-1"></i> Time In / Time Out
             </a>
@@ -85,7 +88,7 @@
             <a href="{% url 'users:my_leaves' %}" class="btn btn-primary w-100">
               <i class="bi bi-journal-plus me-1"></i> File a Leave
             </a>
-            <a href="{% url 'payroll:my_payslips' %}" class="btn btn-success w-100">
+            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success w-100">
               <i class="bi bi-file-earmark-text me-1"></i> My Payslips
             </a>
             <a href="{% url 'users:log_attendance' %}" class="btn btn-success w-100">
@@ -110,7 +113,7 @@
               <i class="bi bi-journal-plus me-1"></i> File a Leave
             </a>
 
-            <a href="{% url 'payroll:my_payslips' %}" class="btn btn-success btn-lg">
+            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success btn-lg">
               <i class="bi bi-file-earmark-text me-1"></i> My Payslips
             </a>
 

@@ -6,9 +6,9 @@ from payroll.models import Payroll
 
 class UserAdmin(BaseUserAdmin):
     # Fields to display in admin list view
-    list_display = ("username", "email", "role", "employee_id", "is_staff", "is_superuser")
+    list_display = ("username", "email", "role", "is_staff", "is_superuser")
     list_filter = ("role", "is_staff", "is_superuser")
-    search_fields = ("username", "email", "employee_id")
+    search_fields = ("username", "email")
     ordering = ("username",)
 
     def get_queryset(self, request):
@@ -19,7 +19,7 @@ class UserAdmin(BaseUserAdmin):
     # Fields to edit in admin form
     fieldsets = (
         (None, {"fields": ("username", "password")}),
-        ("Personal info", {"fields": ("first_name", "last_name", "email", "employee_id")}),
+        ("Personal info", {"fields": ("first_name", "last_name", "email")}),
         ("Permissions", {"fields": ("role", "is_staff", "is_active", "is_superuser", "groups", "user_permissions")}),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
     )
@@ -29,7 +29,6 @@ class UserAdmin(BaseUserAdmin):
             "classes": ("wide",),
             "fields": (
                 "username",
-                "employee_id",
                 "email",
                 "role",
                 "password1",
@@ -73,7 +72,7 @@ class ScheduleAdmin(admin.ModelAdmin):
         "updated_at",
     )
     list_filter = ("employee__role",)  # Filter by role
-    search_fields = ("employee__username", "employee__employee_id")
+    search_fields = ("employee__username",)
     ordering = ("-created_at",)
 
 

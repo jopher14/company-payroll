@@ -1,0 +1,77 @@
+{% extends "main/base.html" %}
+{% load humanize %}
+
+{% block title %}Payslip{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow p-4" id="payslip">
+        <h3 class="text-center mb-4">🧾 Payslip</h3>
+
+        <p><strong>Employee:</strong> {{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</p>
+        <p><strong>Position:</strong> {{ payslip.employee.get_role_display }}</p>
+        <p><strong>Month Covered:</strong> {{ payslip.month|date:"F Y" }}</p>
+
+        <!-- Earnings -->
+        <table class="table table-bordered mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>Earnings</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Basic Rate (Full Salary)</td>
+                    <td>{{ payslip.employee.salary|floatformat:2|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td>Basic Income (This Period)</td>
+                    <td>{{ payslip.basic_salary|floatformat:2|intcomma }}</td>
+                </tr>
+                <tr>
+                    <td>Allowances</td>
+                    <td>{{ payslip.allowances|floatformat:2|intcomma }}</td>
+                </tr>
+                <tr class="table-light">
+                    <td><strong>Gross Income</strong></td>
+                    <td><strong>{{ gross_salary|floatformat:2|intcomma }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Deductions -->
+        <table class="table table-bordered mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>Deductions</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>SSS</td><td>{{ payslip.sss|floatformat:2|intcomma }}</td></tr>
+                <tr><td>PhilHealth</td><td>{{ payslip.philhealth|floatformat:2|intcomma }}</td></tr>
+                <tr><td>Pag-IBIG</td><td>{{ payslip.pagibig|floatformat:2|intcomma }}</td></tr>
+                <tr><td>Withholding Tax</td><td>{{ payslip.withholding_tax|floatformat:2|intcomma }}</td></tr>
+                <tr class="table-light">
+                    <td><strong>Total Deductions</strong></td>
+                    <td><strong>{{ deductions|floatformat:2|intcomma }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Net Pay -->
+        <h4 class="text-end mt-4">
+            Net Pay: <span class="text-success">{{ net_pay|floatformat:2|intcomma }}</span>
+        </h4>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="text-center mt-4">
+        <a href="{% url 'payroll:payroll_list' %}" class="btn btn-secondary">⬅ Back to Payroll</a>
+        <button onclick="window.print()" class="btn btn-primary">
+            🖨 Print Payslip
+        </button>
+    </div>
+</div>
+{% endblock %}

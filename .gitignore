@@ -19,5 +19,3 @@ venv/
 
 django_debug.log
 
-*/migrations/__pycache__/
-*/__pycache__/

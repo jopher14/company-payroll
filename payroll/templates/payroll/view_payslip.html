@@ -1,43 +1,49 @@
 {% extends "main/base.html" %}
-{% block title %}Payslip - {{ payslip.month|date:"F Y" }}{% endblock %}
+{% block title %}Payslip - {{ payslip.month }}/{{ payslip.year }}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h3>Payslip for {{ payslip.month|date:"F Y" }}</h3>
+    <h3>Payslip for {{ payslip.month }}/{{ payslip.year }} - {{ payslip.get_period_display }}</h3>
+
     <table class="table table-bordered mt-3">
         <tr>
-            <th>Basic Salary</th>
-            <td>{{ payslip.basic_salary }}</td>
+            <th>Basic Rate (Full Salary)</th>
+            <td>₱{{ payslip.employee.salary|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <th>Basic Income (This Period)</th>
+            <td>₱{{ payslip.basic_salary|floatformat:2 }}</td>
         </tr>
         <tr>
             <th>Allowances</th>
-            <td>{{ payslip.allowances }}</td>
+            <td>₱{{ payslip.allowances|floatformat:2 }}</td>
         </tr>
         <tr>
-            <th>Deductions</th>
-            <td>{{ payslip.deductions }}</td>
+            <th>Total Deductions</th>
+            <td>₱{{ payslip.total_deductions|floatformat:2 }}</td>
         </tr>
         <tr>
             <th>Net Salary</th>
-            <td>{{ payslip.net_pay }}</td>
+            <td><strong>₱{{ payslip.net_pay|floatformat:2 }}</strong></td>
         </tr>
         <tr>
             <th>SSS</th>
-            <td>{{ payslip.sss }}</td>
+            <td>₱{{ payslip.sss|floatformat:2 }}</td>
         </tr>
         <tr>
             <th>PhilHealth</th>
-            <td>{{ payslip.philhealth }}</td>
+            <td>₱{{ payslip.philhealth|floatformat:2 }}</td>
         </tr>
         <tr>
             <th>Pag-IBIG</th>
-            <td>{{ payslip.pagibig }}</td>
+            <td>₱{{ payslip.pagibig|floatformat:2 }}</td>
         </tr>
         <tr>
             <th>Generated On</th>
             <td>{{ payslip.created_at|date:"M d, Y H:i" }}</td>
         </tr>
     </table>
-    <a href="{% url 'payroll:my_payslips' %}" class="btn btn-secondary mt-3">Back to Payslips</a>
+
+    <a href="{% url 'payroll:my_payslips' %}" class="btn btn-secondary mt-3">⬅ Back to Payslips</a>
 </div>
 {% endblock %}

@@ -12,13 +12,19 @@
     </a>
   </div>
 
+  <!-- try to move this in other html -->
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
   <div class="card shadow">
     <div class="card-body">
       <div class="table-responsive">
         <table class="table table-hover align-middle">
           <thead class="table-dark">
             <tr>
-              <th scope="col">Employee ID</th>
               <th scope="col">Name</th>
               <th scope="col">Position</th>
               <th scope="col">Status</th>
@@ -29,7 +35,6 @@
           <tbody>
             {% for emp in employees %}
             <tr>
-              <td>{{ emp.employee_id }}</td>
               <td>{{ emp.get_full_name|default:emp.username }}</td>
               <td>{{ emp.get_role_display }}</td>
               <td>
@@ -47,10 +52,18 @@
                 {% endif %}
               </td>
               <td>
-                <a href="{% url 'users:update_employee' emp.pk %}" class="btn btn-sm btn-primary">
-                  <i class="bi bi-pencil-square"></i> Update Profile
-                </a>
-              </td>
+              <a href="{% url 'users:update_employee' emp.pk %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-pencil-square"></i> Update Profile
+              </a>
+
+              <form action="{% url 'users:delete_employee' emp.pk %}" method="post" class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to delete this employee?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </form>
+            </td>
             </tr>
             {% empty %}
             <tr>

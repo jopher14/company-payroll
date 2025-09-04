@@ -12,6 +12,7 @@ urlpatterns = [
     path(route="register/", view=views.register, name="register"),
     path(route="employees/", view=views.employee_list, name="employee_list"),
     path(route='employee/update/<int:pk>/', view=views.update_employee, name='update_employee'),
+    path(route="employees/<int:pk>/delete/", view=views.delete_employee, name="delete_employee"),
 
     # Employee
     path(route="leave/file/", view=views.file_leave, name="file_leave"),
