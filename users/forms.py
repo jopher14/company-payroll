@@ -79,7 +79,7 @@ class EmployeeUpdateForm(forms.ModelForm):
         fields = [
             'first_name', 'last_name', 'role', 'birthday', 'contact_number',
             'status', 'photo',
-            'sss', 'tin', 'pagibig', 'philhealth', 'salary'
+            'sss', 'tin', 'pagibig', 'philhealth', 'salary', 'allowances'
         ]
         widgets = {
             'role': forms.Select(attrs={'class': 'form-select'}),
@@ -95,6 +95,7 @@ class EmployeeUpdateForm(forms.ModelForm):
             'pagibig': forms.TextInput(attrs={'class': 'form-control'}),
             'philhealth': forms.TextInput(attrs={'class': 'form-control'}),
             'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            "allowances": forms.NumberInput(attrs={"readonly": "readonly", "class": "form-control"}),
         }
 
     def clean_salary(self):

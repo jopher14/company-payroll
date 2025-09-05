@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from decimal import Decimal
+import calendar
 
 User = settings.AUTH_USER_MODEL
 
@@ -36,3 +37,6 @@ class Payroll(models.Model):
 
     def __str__(self):
         return f"Payroll for {self.employee} - {self.month}/{self.year}"
+
+    def month_name(self):
+        return calendar.month_name[self.month]

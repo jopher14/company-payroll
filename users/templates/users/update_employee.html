@@ -88,8 +88,16 @@
                             {{ form.salary|attr:"id:salary-input, class:form-control" }}
                         </div>
                     </div>
-                </div>
 
+                    <!-- Allowances (30% of Salary, auto-computed) -->
+                    <div class="mb-3">
+                        {{ form.allowances.label_tag }}
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            {{ form.allowances|attr:"id:allowances-input, class:form-control, readonly:readonly" }}
+                        </div>
+                    </div>
+                </div>
             <!-- Buttons -->
             <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
             <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
@@ -122,24 +130,32 @@
   });
 </script>
 
-<!-- JavaScript for auto-formatting salary -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const salaryInput = document.getElementById("salary-input");
+    const allowancesInput = document.getElementById("allowances-input");
 
     function formatNumberWithCommas(value) {
         return value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
-    salaryInput.addEventListener("input", function(e) {
-        const caret = this.selectionStart;
-        const originalLength = this.value.length;
+    function parseNumber(value) {
+        return parseFloat(value.replace(/,/g, "")) || 0;
+    }
 
+    function updateAllowances() {
+        const salaryValue = parseNumber(salaryInput.value);
+        const allowances = salaryValue * 0.30;
+        allowancesInput.value = allowances.toFixed(2); // keep as number
+    }
+
+    salaryInput.addEventListener("input", function() {
         this.value = formatNumberWithCommas(this.value);
-
-        const newLength = this.value.length;
-        this.selectionEnd = caret + (newLength - originalLength);
+        updateAllowances();
     });
+
+    // Run on load if salary already has a value
+    updateAllowances();
 });
 </script>
 {% endblock %}

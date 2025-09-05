@@ -10,7 +10,8 @@
 
         <p><strong>Employee:</strong> {{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</p>
         <p><strong>Position:</strong> {{ payslip.employee.get_role_display }}</p>
-        <p><strong>Month Covered:</strong> {{ payslip.month|date:"F Y" }}</p>
+        <p><strong>Month Covered:</strong> {{ payslip.month_name }} {{ payslip.year }} ({{ payslip.get_period_display }})</p>
+
 
         <!-- Earnings -->
         <table class="table table-bordered mt-3">

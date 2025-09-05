@@ -7,7 +7,7 @@ class PayrollAdmin(admin.ModelAdmin):
     list_display = (
         "employee",
         "basic_salary",
-        "get_allowances",
+        "allowances",
         "sss",
         "philhealth",
         "pagibig",

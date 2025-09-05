@@ -70,18 +70,26 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
     year = today.year
 
     if request.method == "POST":
-        period = cast(str, request.POST.get("period"))
+        period = request.POST.get("period") or ""
+        if period not in ["first_half", "second_half"]:
+            messages.error(request, "Invalid pay period selected.")
+            return redirect("payroll:generate_payroll")
 
         employees = User.objects.filter(role__in=["employee", "supervisor", "manager"])
         skipped = []
 
         for emp in employees:
-            salary: Decimal = emp.salary or Decimal("0.00")
-            allowances: Decimal = emp.allowances or Decimal("0.00")
+            if not emp.salary or emp.salary <= 0:
+                skipped.append(emp.get_full_name() or emp.username)
+                continue
 
-            # ✅ Half salary + half deductions
+            salary: Decimal = emp.salary
+            allowances: Decimal = emp.allowances or (salary * Decimal("0.30"))
+
+            # ✅ Half salary + half allowances + half deductions
             half_salary = salary / 2
             half_allowances = allowances / 2
+
             sss = compute_sss(salary) / 2
             philhealth = compute_philhealth(salary) / 2
             pagibig = compute_pagibig(salary) / 2
