@@ -109,6 +109,16 @@ class Attendance(models.Model):
     @property
     def schedule(self):
         return Schedule.objects.filter(employee=self.employee).first()
+    
+    @property
+    def status(self):
+        """Return a readable status for attendance"""
+        if self.time_in and self.time_out:
+            return "Present"
+        elif self.time_in and not self.time_out:
+            return "Half Day"
+        else:
+            return "Absent"
 
 
 class Schedule(models.Model):

@@ -80,10 +80,7 @@
 
             <!-- Calendar -->
             <div class="tab-pane fade show active" id="calendar" role="tabpanel">
-              <div class="border rounded p-5 bg-light text-center">
-                <h4 class="text-muted">📅 Attendance Calendar</h4>
-                <p class="text-muted">Your attendance records will appear here.</p>
-              </div>
+              <div id="attendance-calendar" class="border rounded p-3 bg-light"></div>
             </div>
 
             <!-- Announcements -->
@@ -124,4 +121,24 @@
 
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('attendance-calendar');
+    var data = JSON.parse('{{ attendance_events|escapejs }}');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      height: 600,
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: data
+    });
+    calendar.render();
+  });
+</script>
+
 {% endblock %}
