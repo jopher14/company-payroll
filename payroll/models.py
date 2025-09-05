@@ -16,10 +16,15 @@ class Payroll(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE)
     basic_salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     allowances = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
+    overtime_pay = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    holiday_pay = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
     sss = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     philhealth = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     pagibig = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     withholding_tax = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
     total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     net_pay = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     created_at = models.DateTimeField(auto_now_add=True)

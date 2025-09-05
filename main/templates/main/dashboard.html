@@ -1,9 +1,9 @@
 {% extends "main/base.html" %}
-
+{% load humanize %}
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid py-4">
 
   <!-- Welcome Banner -->
   <div class="card shadow-lg border-0 rounded-3 mb-4 bg-primary text-white">
@@ -13,136 +13,110 @@
     </div>
   </div>
 
-  <!-- Dashboard Shortcuts -->
-  <div class="row g-4">
-
-    <!-- HR Dashboard -->
-    {% if user.role == "human_resources" or user.is_superuser %}
-    <div class="col-md-4">
+  <div class="row">
+    
+    <!-- Sidebar (Role-Based Shortcuts) -->
+    <div class="col-md-3">
       <div class="card shadow-sm border-0 h-100">
-        <div class="card-body shadow p-4 text-center">
-          <h4 class="card-title mb-3">👥 Employees</h4>
-          <p class="text-muted mb-4">Register, manage, and update employee information.</p>
+        <div class="card-body p-3">
+          <h5 class="card-title text-center mb-4">Menu</h5>
           <div class="d-grid gap-2">
-            <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary btn-lg">
-              <i class="bi bi-people me-1"></i> Manage Employees
-            </a>
-            <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">
-              💰 Generate Payroll
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
 
-    <!-- Manager Dashboard -->
-    {% if user.role == "manager" %}
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body shadow p-4 text-center">
-          <h4 class="card-title mb-3">📊 Manager Dashboard</h4>
-          <p class="text-muted mb-4">
-            Oversee your team, view performance reports, and set schedules for employees and supervisors.
-          </p>
-          <div class="d-grid gap-2">
-            <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-success btn-lg">
-              <i class="bi bi-graph-up me-1"></i> View Reports
-            </a>
-            <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-primary btn-lg">
-              <i class="bi bi-calendar2-check me-1"></i> Set Schedule
-            </a>
-            <a href="{% url 'users:pending_leaves' %}" class="btn btn-warning btn-lg text-dark">
-              <i class="bi bi-file-earmark-text me-1"></i> Check Leave Requests
-            </a>
-            <a href="{% url 'users:pending_overtimes' %}" class="btn btn-warning btn-lg text-dark">
-              <i class="bi bi-file-earmark-text me-1"></i> Check Overtime Requests
-            </a>
-            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success btn-lg">
-              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
-            </a>
-            <a href="{% url 'users:log_attendance' %}" class="btn btn-success btn-lg">
-              <i class="bi bi-clock me-1"></i> Time In / Time Out
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Supervisor Dashboard -->
-    {% if user.role == "supervisor" %}
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body shadow-lg p-4 text-center"> <!-- bigger shadow for emphasis -->
-          <h4 class="card-title mb-3">🗂 Team Requests</h4>
-          <p class="text-muted mb-4">Manage your team’s leave requests and your own leaves.</p>
-
-          <div class="d-grid gap-2">
-            <a href="{% url 'users:pending_leaves' %}" class="btn btn-warning w-100 text-dark">
-              <i class="bi bi-file-earmark-text me-1"></i> Check Leave Requests
-            </a>
-            <a href="{% url 'users:pending_overtimes' %}" class="btn btn-warning w-100 text-dark">
-              <i class="bi bi-file-earmark-text me-1"></i> Check Overtime Requests
-            </a>
-            <a href="{% url 'users:my_leaves' %}" class="btn btn-primary w-100">
-              <i class="bi bi-journal-plus me-1"></i> File a Leave
-            </a>
-            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success w-100">
-              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
-            </a>
-            <a href="{% url 'users:log_attendance' %}" class="btn btn-success w-100">
-              <i class="bi bi-file-earmark-text me-1"></i> TimeIn/TimeOut
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Employee Dashboard -->
-    {% if user.role == "employee" %}
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body shadow p-4 text-center">
-          <h4 class="card-title mb-3">📝 My Profile</h4>
-          <p class="text-muted mb-4">View your profile, tasks, company announcements, and attendance.</p>
-
-          <div class="d-grid gap-2">
-            <a href="{% url 'users:my_leaves' %}" class="btn btn-primary btn-lg">
-              <i class="bi bi-journal-plus me-1"></i> File a Leave
-            </a>
-
-            <a href="{% url 'payroll:payroll_list' %}" class="btn btn-success btn-lg">
-              <i class="bi bi-file-earmark-text me-1"></i> My Payslips
-            </a>
-
-            <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-success btn-lg">
-              <i class="bi bi-clock me-1"></i> Time In / Time Out
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Common for All Roles -->
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body shadow p-4 text-center">
-          <h4 class="card-title mb-3">📢 Announcements</h4>
-          <p class="text-muted mb-4">Check out the latest company news and updates.</p>
-
-          <div class="d-grid gap-2">
-            <a href="{% url 'main:announcement_list' %}" class="btn btn-outline-dark btn-lg">
-              <i class="bi bi-megaphone me-1"></i> View Announcements
-            </a>
-
-            {% if user.role == "human_resources" %}
-            <a href="{% url 'main:create_announcement' %}" class="btn btn-primary btn-lg">
-              <i class="bi bi-plus-lg me-1"></i> Create Announcement
-            </a>
+            {% if user.role == "human_resources" or user.is_superuser %}
+              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary">👥 Manage Employees</a>
+              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">💰 Generate Payroll</a>
+              <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">➕ Create Announcement</a>
             {% endif %}
+
+            {% if user.role == "manager" %}
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-dark">📊 View Reports</a>
+              <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-dark">📅 Set Schedule</a>
+              <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
+              <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+            {% endif %}
+
+            {% if user.role == "supervisor" %}
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
+              <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
+              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+            {% endif %}
+
+            {% if user.role == "employee" %}
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Panel (Calendar / Announcements) -->
+    <div class="col-md-9">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-5" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar" type="button" role="tab">
+                📅 Attendance Calendar
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab">
+                📢 Announcements
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab Content -->
+          <div class="tab-content" id="dashboardTabsContent">
+
+            <!-- Calendar -->
+            <div class="tab-pane fade show active" id="calendar" role="tabpanel">
+              <div class="border rounded p-5 bg-light text-center">
+                <h4 class="text-muted">📅 Attendance Calendar</h4>
+                <p class="text-muted">Your attendance records will appear here.</p>
+              </div>
+            </div>
+
+            <!-- Announcements -->
+            <div class="tab-pane fade" id="announcements" role="tabpanel">
+              <h4>📢 Latest Announcements</h4>
+
+              <div class="list-group mt-3">
+                {% for ann in announcement %}
+                  <div class="list-group-item shadow-sm mb-3 p-4 rounded">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h5 class="mb-1">{{ ann.title }}</h5>
+                        {% if ann.event_date %}
+                          <span class="badge bg-info text-dark">
+                            Event: {{ ann.event_date|date:"M d, Y" }}
+                          </span>
+                        {% endif %}
+                        <p class="mt-2">{{ ann.description }}</p>
+                      </div>
+                      <small class="text-muted text-end">
+                        Posted by {{ ann.created_by.get_full_name|default:ann.created_by.username }}<br>
+                        {{ ann.created_at|naturaltime }}
+                      </small>
+                    </div>
+                  </div>
+                {% empty %}
+                  <div class="alert alert-secondary text-center">
+                    No announcements found.
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

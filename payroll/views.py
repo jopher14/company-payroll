@@ -79,24 +79,26 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
         skipped = []
 
         for emp in employees:
-            if not emp.salary or emp.salary <= 0:
-                skipped.append(emp.get_full_name() or emp.username)
-                continue
-
-            salary: Decimal = emp.salary
+            salary: Decimal = emp.salary or Decimal("0.00")
             allowances: Decimal = emp.allowances or (salary * Decimal("0.30"))
 
-            # ✅ Half salary + half allowances + half deductions
+            # ✅ Half salary + half allowances
             half_salary = salary / 2
             half_allowances = allowances / 2
 
+            # ✅ Deductions
             sss = compute_sss(salary) / 2
             philhealth = compute_philhealth(salary) / 2
             pagibig = compute_pagibig(salary) / 2
             tax = compute_withholding_tax(salary) / 2
 
             total_deductions = sss + philhealth + pagibig + tax
-            net_pay = half_salary + half_allowances - total_deductions
+
+            # ✅ Placeholder (later: fetch from Overtime & Holidays tables)
+            overtime_pay = Decimal("0.00")
+            holiday_pay = Decimal("0.00")
+
+            net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
 
             # ✅ Prevent duplicates
             exists = Payroll.objects.filter(
@@ -114,6 +116,8 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
                 period=period,
                 basic_salary=half_salary,
                 allowances=half_allowances,
+                overtime_pay=overtime_pay,
+                holiday_pay=holiday_pay,
                 sss=sss,
                 philhealth=philhealth,
                 pagibig=pagibig,
@@ -134,5 +138,4 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
 
         return redirect("payroll:payroll_list")
 
-    # GET → Show selection form
     return render(request, "payroll/generate_form.html")
