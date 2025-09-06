@@ -38,10 +38,11 @@ class UserRegistrationForm(UserCreationForm):
 class LeaveForm(forms.ModelForm):
     class Meta:
         model = Leave
-        fields = ["start_date", "end_date", "reason"]
+        fields = ["start_date", "end_date", "leave_type", "reason"]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "end_date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "leave_type": forms.Select(attrs={"class": "form-select"}),
             "reason": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
@@ -83,7 +84,7 @@ class EmployeeUpdateForm(forms.ModelForm):
         fields = [
             'first_name', 'last_name', 'role', 'birthday', 'contact_number',
             'status', 'photo',
-            'sss', 'tin', 'pagibig', 'philhealth', 'salary', 'allowances'
+            'sss', 'tin', 'pagibig', 'philhealth', 'salary', 'leave_count'
         ]
         widgets = {
             'role': forms.Select(attrs={'class': 'form-select'}),
@@ -93,13 +94,12 @@ class EmployeeUpdateForm(forms.ModelForm):
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
-
             'sss': forms.TextInput(attrs={'class': 'form-control'}),
             'tin': forms.TextInput(attrs={'class': 'form-control'}),
             'pagibig': forms.TextInput(attrs={'class': 'form-control'}),
             'philhealth': forms.TextInput(attrs={'class': 'form-control'}),
             'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            "allowances": forms.NumberInput(attrs={"readonly": "readonly", "class": "form-control"}),
+            'leave_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }
 
     def clean_salary(self):
@@ -114,6 +114,9 @@ class EmployeeUpdateForm(forms.ModelForm):
         self.fields['role'].choices = [
             (role, label) for role, label in self.fields['role'].choices if role != 'admin'
         ]
+        # Optional: set default leave count for new users
+        if self.instance and self.instance.leave_count is None:
+            self.fields['leave_count'].initial = 15
 
 
 class OvertimeForm(forms.ModelForm):
