@@ -5,11 +5,18 @@
 <div class="container mt-5" style="max-width: 600px;">
   <div class="card shadow p-4">
     <h3 class="mb-3">File a Leave Request</h3>
+
+    <!-- Current Leave Count -->
+    <p>
+      <strong>Remaining Leave:</strong> {{ request.user.leave_count }} day{% if request.user.leave_count != 1 %}s{% endif %}
+    </p>
+
     <form method="post">
       {% csrf_token %}
       {{ form.as_p }}
       <button type="submit" class="btn btn-primary w-100">Submit Request</button>
     </form>
+
     <br>
     <a href="{% url 'users:my_leaves' %}" class="btn btn-secondary mb-3">Back</a>
   </div>

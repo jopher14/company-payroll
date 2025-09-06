@@ -64,12 +64,22 @@ class User(AbstractUser):
 
 
 class Leave(models.Model):
-    HALF_DAY = "Half Day"
-    WHOLE_DAY = "Whole Day"
+    HALF_DAY = "half_day"
+    WHOLE_DAY = "whole_day"
 
     LEAVE_TYPE_CHOICES = [
         (HALF_DAY, "Half Day"),
         (WHOLE_DAY, "Whole Day"),
+    ]
+
+    PENDING = "Pending"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
+
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
     ]
 
     employee = models.ForeignKey(
@@ -77,17 +87,17 @@ class Leave(models.Model):
     )
     start_date = models.DateField()
     end_date = models.DateField()
-    leave_type = models.CharField(
-        max_length=20,
-        choices=LEAVE_TYPE_CHOICES,
-        default=WHOLE_DAY
-    )
+    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES, default=WHOLE_DAY)
     reason = models.TextField()
-    status = models.CharField(max_length=20, choices=[
-        ("Pending", "Pending"),
-        ("Approved", "Approved"),
-        ("Rejected", "Rejected"),
-    ], default="Pending")
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("Pending", "Pending"),
+            ("Approved", "Approved"),
+            ("Rejected", "Rejected")
+        ],
+        default="Pending"
+    )
     supervisor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -105,16 +115,23 @@ class Leave(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    @property
-    def hours(self):
-        """Return total leave hours based on leave_type."""
-        if self.leave_type == self.HALF_DAY:
-            return 4
-        elif self.leave_type == self.WHOLE_DAY:
-            # If leave spans multiple days, calculate total hours
-            total_days = (self.end_date - self.start_date).days + 1
-            return total_days * 8
-        return 0
+    def leave_hours(self):
+        """Return hours: 4 for half-day, 8 for whole-day"""
+        return 4 if self.leave_type == self.HALF_DAY else 8
+
+    def deduct_leave(self):
+        """Deduct leave_count from employee"""
+        days_to_deduct = 0.5 if self.leave_type == self.HALF_DAY else 1
+        self.employee.leave_count = max(self.employee.leave_count - days_to_deduct, 0)
+        self.employee.save()
+
+    def save(self, *args, **kwargs):
+        # Only deduct if the status changed to APPROVED
+        if self.pk:  # existing record
+            old = Leave.objects.get(pk=self.pk)
+            if old.status != self.APPROVED and self.status == self.APPROVED:
+                self.deduct_leave()
+        super().save(*args, **kwargs)
 
 
 class Attendance(models.Model):

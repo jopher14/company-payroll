@@ -43,8 +43,12 @@
     {% endif %}
 
     <div class="mt-4">
-      <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-secondary w-100">
+      <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-primary w-100">
         📋 View Attendance Table
+      </a>
+      <br>
+      <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary w-100 mb-3">
+        Back
       </a>
     </div>
   </div>
