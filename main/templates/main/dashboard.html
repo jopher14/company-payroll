@@ -3,35 +3,42 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-
-  <!-- Welcome Banner -->
-  <div class="card shadow-lg border-0 rounded-3 mb-4 bg-primary text-white">
-    <div class="card-body text-center">
-      <h1 class="fw-bold">Welcome back, {{ user.get_full_name|default:user.username }} 👋</h1>
-      <p class="mb-0">You are logged in as <strong>{{ user.role|title }}</strong></p>
-    </div>
-  </div>
+<div class="container-fluid py-1">
 
   <div class="row">
     
     <!-- Sidebar (Role-Based Shortcuts) -->
     <div class="col-md-3">
       <div class="card shadow-sm border-0 h-100">
+
+        <!-- Sidebar Header -->
+        <div class="bg-primary text-white text-center py-4 rounded-top">
+          <h5 class="fw-bold mb-1">
+            👋 Welcome, {{ user.get_full_name|default:user.username }}
+          </h5>
+          <small>You are logged in as <strong>{{ user.role|title }}</strong></small>
+        </div>
+
+        <!-- Sidebar Body -->
         <div class="card-body p-3">
-          <h5 class="card-title text-center mb-4">Menu</h5>
+          <h5 class="card-title text-center mb-4">📌 Quick Menu</h5>
           <div class="d-grid gap-2">
 
             {% if user.role == "human_resources" or user.is_superuser %}
-              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary">👥 Manage Employees</a>
-              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">💰 Generate Payroll</a>
-              <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">➕ Create Announcement</a>
+              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary">
+                👥 Manage Employees
+              </a>
+              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">
+                💰 Generate Payroll
+              </a>
+              <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">
+                ➕ Create Announcement
+              </a>
             {% endif %}
 
             {% if user.role == "manager" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
               <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-dark">📊 View Reports</a>
-              <a href="{% url 'users:set_schedule' %}" class="btn btn-outline-dark">📅 Set Schedule</a>
               <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
               <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>

@@ -1,5 +1,5 @@
 import json
-from typing import cast
+from typing import cast, Any
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpRequest, HttpResponse
@@ -20,7 +20,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     leaves = Leave.objects.filter(employee=user, status=Leave.APPROVED)
     schedules = Schedule.objects.filter(employee=user)
 
-    events = []
+    events: list[dict[str, Any]] = []
 
     # Attendance events
     for log in attendance_logs:
@@ -83,11 +83,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     for sched in schedules:
         for day_obj in sched.days_of_week.all():
             events.append({
-                "title": f"Schedule ({day_obj.name})",
-                "daysOfWeek": str([day_obj.number - 1]),
-                "startTime": sched.time_in.strftime("%H:%M"),
-                "endTime": sched.time_out.strftime("%H:%M"),
-                "color": "purple"
+                "title": f"{sched.time_in.strftime('%H:%M')} - {sched.time_out.strftime('%H:%M')}",
+                "daysOfWeek": str([day_obj.number - 1]),  # linter issue
+                "color": "grey",
+                "allDay": True,
             })
 
     context = {
