@@ -8,7 +8,8 @@
 
     <!-- Current Leave Count -->
     <p>
-      <strong>Remaining Leave:</strong> {{ request.user.leave_count }} day{% if request.user.leave_count != 1 %}s{% endif %}
+      <strong>Remaining Leave:</strong>
+      {{ request.user.leave_count|floatformat:1 }} day{% if request.user.leave_count != 1 %}s{% endif %}
     </p>
 
     <form method="post">

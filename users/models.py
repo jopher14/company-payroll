@@ -47,7 +47,9 @@ class User(AbstractUser):
     allowances = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
     # Leave
-    leave_count = models.PositiveIntegerField(default=15)
+    leave_count = models.DecimalField(
+        max_digits=5, decimal_places=1, default=Decimal("15.0")
+    )
 
     # Contact
     birthday = models.DateField(null=True, blank=True)
@@ -62,76 +64,126 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.first_name} ({self.role})"
 
+    def refresh_leave_balance(self):
+        """Recalculate leave balance from approved leaves."""
+        from users.models import Leave  # inline import to avoid circular import
+
+        base_entitlement = Decimal("15.0")  # default yearly entitlement
+
+        approved_leaves = Leave.objects.filter(employee=self, status=Leave.APPROVED)
+
+        total_deducted = Decimal("0.0")
+        for leave in approved_leaves:
+            total_deducted += Decimal(str(leave.total_days()))
+
+        self.leave_count = max(base_entitlement - total_deducted, Decimal("0.0"))
+        self.save()
+
 
 class Leave(models.Model):
+    # Leave types
     HALF_DAY = "half_day"
     WHOLE_DAY = "whole_day"
-
     LEAVE_TYPE_CHOICES = [
         (HALF_DAY, "Half Day"),
         (WHOLE_DAY, "Whole Day"),
     ]
 
+    # Status choices
     PENDING = "Pending"
     APPROVED = "Approved"
     REJECTED = "Rejected"
-
     STATUS_CHOICES = [
         (PENDING, "Pending"),
         (APPROVED, "Approved"),
         (REJECTED, "Rejected"),
     ]
 
+    # Fields
     employee = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="leaves"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="leaves",
     )
     start_date = models.DateField()
     end_date = models.DateField()
-    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES, default=WHOLE_DAY)
+    leave_type = models.CharField(
+        max_length=10, choices=LEAVE_TYPE_CHOICES, default=WHOLE_DAY
+    )
     reason = models.TextField()
     status = models.CharField(
-        max_length=20,
-        choices=[
-            ("Pending", "Pending"),
-            ("Approved", "Approved"),
-            ("Rejected", "Rejected")
-        ],
-        default="Pending"
+        max_length=20, choices=STATUS_CHOICES, default=PENDING
     )
+
+    # Tracking approver/reviewer
     supervisor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="approved_leaves"
+        related_name="approved_leaves",
     )
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="reviewed_leaves"
+        related_name="reviewed_leaves",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def leave_hours(self):
-        """Return hours: 4 for half-day, 8 for whole-day"""
-        return 4 if self.leave_type == self.HALF_DAY else 8
+    # --- Business Logic ---
 
-    def deduct_leave(self):
-        """Deduct leave_count from employee"""
-        days_to_deduct = 0.5 if self.leave_type == self.HALF_DAY else 1
-        self.employee.leave_count = max(self.employee.leave_count - days_to_deduct, 0)
+    def total_days(self) -> float:
+        """Return number of leave days deducted."""
+        days = (self.end_date - self.start_date).days + 1
+        if self.leave_type == self.HALF_DAY and days == 1:
+            return 0.5
+        return float(days)
+
+    def leave_days(self) -> float:
+        """
+        Return leave days:
+        - 0.5 for half-day
+        - number of full days between start and end (inclusive) for whole day
+        """
+        if self.leave_type == self.HALF_DAY:
+            return 0.5
+        return (self.end_date - self.start_date).days + 1
+
+    def leave_hours(self) -> int:
+        """
+        Return leave hours:
+        - 4 hours for half-day
+        - 8 hours * number of days for whole-day
+        """
+        if self.leave_type == self.HALF_DAY:
+            return 4
+        return int(self.leave_days() * 8)
+
+    def deduct_leave(self) -> None:
+        """Deduct leave_count from employee (ensure it never goes below 0)."""
+        days_to_deduct = Decimal(str(self.leave_days()))
+        self.employee.leave_count = max(self.employee.leave_count - days_to_deduct, Decimal("0.0"))
         self.employee.save()
 
     def save(self, *args, **kwargs):
-        # Only deduct if the status changed to APPROVED
-        if self.pk:  # existing record
-            old = Leave.objects.get(pk=self.pk)
-            if old.status != self.APPROVED and self.status == self.APPROVED:
-                self.deduct_leave()
+        old_status = None
+        if self.pk:
+            old_status = Leave.objects.get(pk=self.pk).status
+
         super().save(*args, **kwargs)
+
+        # Recalculate leave balance if status changed
+        if (old_status != self.APPROVED and self.status == self.APPROVED) or \
+                (old_status == self.APPROVED and self.status != self.APPROVED):
+            self.employee.refresh_leave_balance()
+
+    def __str__(self) -> str:
+        return f"{self.employee} | {self.get_leave_type_display()} | {self.status}"
 
 
 class Attendance(models.Model):
@@ -139,6 +191,7 @@ class Attendance(models.Model):
     date = models.DateField(auto_now_add=True)
     time_in = models.TimeField(null=True, blank=True)
     time_out = models.TimeField(null=True, blank=True)
+    half_day = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.employee.username} - {self.date}"

@@ -33,6 +33,16 @@
           {% if leave.status == "Pending" %}
             <a href="{% url 'users:edit_leave' leave.id %}" class="btn btn-sm btn-primary">Edit</a>
             <a href="{% url 'users:delete_leave' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
+          {% elif leave.status == "Approved" %}
+            {% if leave.reviewed_by %}
+              <small><strong>Approved by:</strong> {{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}</small>
+            {% endif %}
+          {% elif leave.status == "Rejected" %}
+            {% if leave.reviewed_by %}
+              <small><strong>Rejected by:</strong> {{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}</small>
+            {% endif %}
+          {% else %}
+            <span class="badge bg-warning text-dark">Pending</span>
           {% endif %}
         </td>
       </tr>

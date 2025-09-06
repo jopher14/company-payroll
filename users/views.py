@@ -141,67 +141,56 @@ def pending_leaves(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def approve_leave(request: HttpRequest, pk: int) -> HttpResponse:
+def process_leave(request: HttpRequest, pk: int, action: str) -> HttpResponse:
+    """
+    Process a leave request (approve or reject).
+    """
     leave = get_object_or_404(Leave, pk=pk)
-
     reviewer = request.user
+
     if not isinstance(reviewer, User):
         return HttpResponse("Invalid user", status=400)
 
-    # Rule: Employee → Supervisor approves
+    # ✅ Approval hierarchy rules
     if leave.employee.role == "employee" and reviewer.role != "supervisor":
-        return HttpResponse("Only supervisors can approve employee leaves.", status=403)
+        return HttpResponse("Only supervisors can process employee leaves.", status=403)
 
-    # Rule: Supervisor → Manager approves
     if leave.employee.role == "supervisor" and reviewer.role != "manager":
-        return HttpResponse("Only managers can approve supervisor leaves.", status=403)
+        return HttpResponse("Only managers can process supervisor leaves.", status=403)
 
-    if leave.status != "Pending":
+    if leave.status != Leave.PENDING:
         messages.warning(request, "This leave request has already been processed.")
     else:
-        leave.status = "Approved"
-        leave.reviewed_by = reviewer   # ✅ suggest renaming Leave.supervisor → reviewed_by
-        leave.reviewed_at = now()
-        leave.save()
+        if action == "approve":
+            leave.status = Leave.APPROVED
+            action_msg = "approved"
+        elif action == "reject":
+            leave.status = Leave.REJECTED
+            action_msg = "rejected"
+        else:
+            return HttpResponse("Invalid action", status=400)
 
-        messages.success(
-            request,
-            f"Leave for {leave.employee.get_full_name() or leave.employee.username} approved."
-        )
-
-    return redirect("users:pending_leaves")
-
-
-@login_required
-def reject_leave(request: HttpRequest, pk: int) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk)
-
-    reviewer = request.user
-    if not isinstance(reviewer, User):
-        return HttpResponse("Invalid user", status=400)
-
-    # Rule: Employee → Supervisor rejects
-    if leave.employee.role == "employee" and reviewer.role != "supervisor":
-        return HttpResponse("Only supervisors can reject employee leaves.", status=403)
-
-    # Rule: Supervisor → Manager rejects
-    if leave.employee.role == "supervisor" and reviewer.role != "manager":
-        return HttpResponse("Only managers can reject supervisor leaves.", status=403)
-
-    if leave.status != "Pending":
-        messages.warning(request, "This leave request has already been processed.")
-    else:
-        leave.status = "Rejected"
         leave.reviewed_by = reviewer
         leave.reviewed_at = now()
         leave.save()
 
         messages.success(
             request,
-            f"Leave for {leave.employee.get_full_name() or leave.employee.username} rejected."
+            f"Leave for {leave.employee.get_full_name() or leave.employee.username} {action_msg}."
         )
 
     return redirect("users:pending_leaves")
+
+
+# ✅ Shortcut wrappers for URLs
+@login_required
+def approve_leave(request: HttpRequest, pk: int) -> HttpResponse:
+    return process_leave(request, pk, "approve")
+
+
+@login_required
+def reject_leave(request: HttpRequest, pk: int) -> HttpResponse:
+    return process_leave(request, pk, "reject")
 
 
 # --- MANAGER ---
