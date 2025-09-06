@@ -210,34 +210,6 @@ def is_manager(user):
 
 
 @login_required
-@user_passes_test(is_manager)
-def set_schedule(request: HttpRequest) -> HttpResponse:
-    employee_id_str = request.GET.get("employee")
-    employee_id: int | None = None
-    instance = None
-
-    if employee_id_str:
-        try:
-            employee_id = int(employee_id_str)
-        except ValueError:
-            employee_id = None  # invalid id, ignore
-
-    if employee_id is not None:
-        # If employee already has a schedule, fetch it
-        instance = Schedule.objects.filter(employee_id=employee_id).first()
-
-    if request.method == "POST":
-        form = ScheduleForm(request.POST, instance=instance)
-        if form.is_valid():
-            form.save()
-            return redirect("users:set_schedule")
-    else:
-        form = ScheduleForm(instance=instance)
-
-    return render(request, "attendance/set_schedule.html", {"form": form})
-
-
-@login_required
 def log_attendance(request: HttpRequest) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
@@ -313,6 +285,102 @@ def attendance_list(request: HttpRequest) -> HttpResponse:
 # --- HR ---
 def is_hr(user):
     return user.role == "human_resources" or user.is_superuser
+
+
+@login_required
+@user_passes_test(lambda u: u.is_authenticated and u.role == "human_resources")
+def manage_schedule(request: HttpRequest) -> HttpResponse:
+    query = request.GET.get("q", "")
+
+    # Get all employees, optionally filtered by search query
+    employees = User.objects.filter(role__in=["employee", "supervisor"])
+    if query:
+        employees = employees.filter(first_name__icontains=query) | employees.filter(last_name__icontains=query)
+
+    # Prepare a list of employee schedules
+    schedules_grouped = []
+    for employee in employees:
+        # Get all schedules for this employee, ordered by time_in
+        schedules = Schedule.objects.filter(employee=employee).order_by("time_in")
+        if schedules.exists():
+            schedules_grouped.append({
+                "employee": employee,
+                "schedules": schedules
+            })
+
+    context = {
+        "schedules_grouped": schedules_grouped
+    }
+    return render(request, "attendance/manage_schedule.html", context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_authenticated and u.role == "human_resources")
+def add_schedule(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ScheduleForm(request.POST)
+        if form.is_valid():
+            # Save the form instance without committing to handle ManyToManyField
+            schedule = form.save(commit=False)
+            schedule.employee = form.cleaned_data["employee"]
+            schedule.time_in = form.cleaned_data["time_in"]
+            schedule.time_out = form.cleaned_data["time_out"]
+            schedule.save()  # must save before setting ManyToManyField
+
+            # Set the selected days
+            schedule.days_of_week.set(form.cleaned_data["days_of_week"])
+
+            # Success message
+            messages.success(request, f"✅ Schedule for {schedule.employee.get_full_name()} saved successfully!")
+
+            return redirect("users:manage_schedule")
+    else:
+        form = ScheduleForm()
+
+    return render(request, "attendance/schedule_form.html", {
+        "form": form,
+        "title": "Add Schedule"
+    })
+
+
+@login_required
+@user_passes_test(is_hr)
+def edit_schedule(request, pk):
+    employee = get_object_or_404(User, id=pk, role="employee")
+    existing_schedule = Schedule.objects.filter(employee=employee).first()
+
+    if request.method == "POST":
+        form = ScheduleForm(request.POST, instance=existing_schedule)
+        if form.is_valid():
+            # Save form instance without committing
+            schedule = form.save(commit=False)
+            schedule.employee = employee
+            schedule.time_in = form.cleaned_data["time_in"]
+            schedule.time_out = form.cleaned_data["time_out"]
+            schedule.save()  # save before setting ManyToMany
+
+            # Set the selected days
+            schedule.days_of_week.set(form.cleaned_data["days_of_week"])
+
+            messages.success(request, f"✅ Schedule for {employee.get_full_name()} updated successfully!")
+            return redirect("users:manage_schedule")
+    else:
+        # Prepare initial data for form
+        initial_days = existing_schedule.days_of_week.all() if existing_schedule else []
+        initial_time_in = existing_schedule.time_in if existing_schedule else None
+        initial_time_out = existing_schedule.time_out if existing_schedule else None
+
+        form = ScheduleForm(instance=existing_schedule, initial={
+            "employee": employee,
+            "days_of_week": initial_days,
+            "time_in": initial_time_in,
+            "time_out": initial_time_out,
+        })
+
+    return render(request, "attendance/schedule_form.html", {
+        "form": form,
+        "title": f"Edit Schedule - {employee.get_full_name()}",
+    })
 
 
 @login_required

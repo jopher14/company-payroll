@@ -50,20 +50,26 @@
                 {% else %}
                   <span class="text-muted">Not set</span>
                 {% endif %}
-              </td>
               <td>
-              <a href="{% url 'users:update_employee' emp.pk %}" class="btn btn-sm btn-primary">
-                <i class="bi bi-pencil-square"></i> Update Profile
-              </a>
+                <!-- Update Profile -->
+                <a href="{% url 'users:update_employee' emp.pk %}" class="btn btn-sm btn-primary">
+                  <i class="bi bi-pencil-square"></i> Update Profile
+                </a>
 
-              <form action="{% url 'users:delete_employee' emp.pk %}" method="post" class="d-inline"
-                    onsubmit="return confirm('Are you sure you want to delete this employee?');">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-danger">
-                  <i class="bi bi-trash"></i> Delete
-                </button>
-              </form>
-            </td>
+                <!-- Manage Schedule -->
+                <a href="{% url 'users:manage_schedule' %}?employee_id={{ emp.pk }}" class="btn btn-sm btn-primary">
+                  <i class="bi bi-calendar-event"></i> Set Schedule
+                </a>
+
+                <!-- Delete -->
+                <form action="{% url 'users:delete_employee' emp.pk %}" method="post" class="d-inline"
+                      onsubmit="return confirm('Are you sure you want to delete this employee?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash"></i> Delete
+                  </button>
+                </form>
+              </td>
             </tr>
             {% empty %}
             <tr>

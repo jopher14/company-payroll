@@ -109,7 +109,7 @@ class Attendance(models.Model):
     @property
     def schedule(self):
         return Schedule.objects.filter(employee=self.employee).first()
-    
+
     @property
     def status(self):
         """Return a readable status for attendance"""
@@ -121,18 +121,39 @@ class Attendance(models.Model):
             return "Absent"
 
 
+class Day(models.Model):
+    DAYS = [
+        (1, "Sun"),
+        (2, "Mon"),
+        (3, "Tue"),
+        (4, "Wed"),
+        (5, "Thu"),
+        (6, "Fri"),
+        (7, "Sat"),
+    ]
+    number = models.IntegerField(choices=DAYS)
+    name = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.name
+
+
 class Schedule(models.Model):
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="schedule"
     )
+    days_of_week = models.ManyToManyField(Day)  # <-- add this field
     time_in = models.TimeField()
     time_out = models.TimeField()
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_days_display(self):
+        return ", ".join(day.name for day in self.days_of_week.all())
+
     def __str__(self):
-        return f"{self.employee.username} - {self.time_in} to {self.time_out}"
+        days = ", ".join(day.name for day in self.days_of_week.all())
+        return f"{self.employee.username} - {days} ({self.time_in} - {self.time_out})"
 
 
 class Overtime(models.Model):

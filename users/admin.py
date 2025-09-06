@@ -66,13 +66,17 @@ class AttendanceAdmin(admin.ModelAdmin):
 class ScheduleAdmin(admin.ModelAdmin):
     list_display = (
         "employee",
+        "get_days_display",  # use method to display days
         "time_in",
         "time_out",
         "created_at",
         "updated_at",
     )
-    list_filter = ("employee__role",)  # Filter by role
-    search_fields = ("employee__username",)
+
+    # Custom filter for days (optional)
+    list_filter = ("employee__role",)  # Can't filter by ManyToManyField directly
+
+    search_fields = ("employee__username", "employee__first_name", "employee__last_name")
     ordering = ("-created_at",)
 
 

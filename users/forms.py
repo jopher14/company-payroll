@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Leave, Attendance, Schedule, Overtime
+from .models import User, Leave, Attendance, Schedule, Overtime, Day
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -60,17 +60,21 @@ TIME_CHOICES = [(f"{h:02d}:{m:02d}", f"{h:02d}:{m:02d}") for h in range(0, 24) f
 
 
 class ScheduleForm(forms.ModelForm):
+    employee = forms.ModelChoiceField(
+        queryset=User.objects.filter(role__in=['supervisor', 'employee'], is_superuser=False)
+    )
+    days_of_week = forms.ModelMultipleChoiceField(
+        queryset=Day.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Days of Week"
+    )
     time_in = forms.ChoiceField(choices=TIME_CHOICES, label="Time In")
     time_out = forms.ChoiceField(choices=TIME_CHOICES, label="Time Out")
 
     class Meta:
         model = Schedule
-        fields = ['employee', 'time_in', 'time_out']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Only Supervisors and Employees in dropdown
-        self.fields['employee'].queryset = User.objects.filter(role__in=['supervisor', 'employee'], is_superuser=False)
+        fields = ['employee', 'days_of_week', 'time_in', 'time_out']
 
 
 class EmployeeUpdateForm(forms.ModelForm):

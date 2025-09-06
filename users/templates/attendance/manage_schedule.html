@@ -1,0 +1,91 @@
+{% extends "main/base.html" %}
+{% block title %}Manage Attendance Schedule{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">🗓 Manage Weekly Attendance Schedule</h2>
+
+  {% if messages %}
+    <div class="mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Top Controls -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Add Schedule Button -->
+    <a href="{% url 'users:add_schedule' %}" class="btn btn-success">
+      <i class="bi bi-calendar-plus"></i> Add Schedule
+    </a>
+
+    <!-- Search Form -->
+    <form method="get" class="d-flex" style="max-width: 300px;">
+      <input type="text" name="q" class="form-control me-2"
+             placeholder="🔍 Search by name"
+             value="{{ request.GET.q }}">
+      <button class="btn btn-outline-primary" type="submit">Search</button>
+    </form>
+  </div>
+
+  <!-- Schedule Table -->
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Current Schedules</h5>
+    </div>
+    <div class="card-body p-0">
+      <table class="table align-middle mb-0">
+        <thead class="table">
+          <tr>
+            <th>Employee</th>
+            <th>Day(s)</th>
+            <th class="text-center">Time In</th>
+            <th class="text-center">Time Out</th>
+            <th class="text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in schedules_grouped %}
+          <tr>
+            <td class="fw-semibold">{{ group.employee.get_full_name }}</td>
+            <td>
+              {% for sched in group.schedules %}
+                <span class="badge text-dark px-3 py-2 rounded-pill">
+                  {{ sched.get_days_display }}
+                </span>
+              {% endfor %}
+            </td>
+            <td class="text-center">
+              <i class="bi bi-clock text-success"></i>
+              {{ group.schedules.0.time_in|time:"H:i" }}
+            </td>
+            <td class="text-center">
+              <i class="bi bi-clock-fill text-danger"></i>
+              {{ group.schedules.0.time_out|time:"H:i" }}
+            </td>
+            <td class="text-center">
+              <a href="{% url 'users:edit_schedule' group.employee.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil-square"></i> Edit
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              <i class="bi bi-info-circle"></i> No schedules set.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+{% endblock %}

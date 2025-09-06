@@ -13,6 +13,9 @@ urlpatterns = [
     path(route="employees/", view=views.employee_list, name="employee_list"),
     path(route='employee/update/<int:pk>/', view=views.update_employee, name='update_employee'),
     path(route="employees/<int:pk>/delete/", view=views.delete_employee, name="delete_employee"),
+    path(route="manage/", view=views.manage_schedule, name="manage_schedule"),
+    path(route="add-schedule/", view=views.add_schedule, name="add_schedule"),
+    path(route="edit-schedule/<int:pk>/", view=views.edit_schedule, name="edit_schedule"),
 
     # Employee
     path(route="leave/file/", view=views.file_leave, name="file_leave"),
@@ -26,7 +29,6 @@ urlpatterns = [
     path(route="leave/reject/<int:pk>/", view=views.reject_leave, name="reject_leave"),
 
     # Manager
-    path(route='attendance/set_schedule/', view=views.set_schedule, name='set_schedule'),
 
     # Attendance
     path(route="attendance/log/", view=views.log_attendance, name="log_attendance"),
