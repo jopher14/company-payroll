@@ -47,9 +47,16 @@ admin.site.register(User, UserAdmin)
 @admin.register(Leave)
 class LeaveAdmin(admin.ModelAdmin):
     list_display = (
-        'employee', 'start_date', 'end_date', 'status', 'supervisor', 'reviewed_at', 'created_at'
+        'employee',
+        'start_date',
+        'end_date',
+        'leave_type',
+        'status',
+        'supervisor',
+        'reviewed_at',
+        'created_at',
     )
-    list_filter = ('status', 'employee')
+    list_filter = ('status', 'employee', 'leave_type')
     search_fields = ('employee__username', 'employee__first_name', 'employee__last_name', 'reason')
     ordering = ('-created_at',)
 

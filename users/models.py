@@ -108,11 +108,15 @@ class Leave(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     leave_type = models.CharField(
-        max_length=10, choices=[("full", "Full Day"), ("half", "Half Day")]
+        max_length=20,
+        choices=LEAVE_TYPE_CHOICES,
+        default=WHOLE_DAY,
     )
     reason = models.TextField()
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=PENDING
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=PENDING,
     )
 
     # Tracking approver/reviewer
@@ -145,29 +149,23 @@ class Leave(models.Model):
         return float(days)
 
     def leave_days(self) -> float:
-        """
-        Return leave days:
-        - 0.5 for half-day
-        - number of full days between start and end (inclusive) for whole day
-        """
+        """Return leave days (0.5 for half-day, else full days inclusive)."""
         if self.leave_type == self.HALF_DAY:
             return 0.5
         return (self.end_date - self.start_date).days + 1
 
     def leave_hours(self) -> int:
-        """
-        Return leave hours:
-        - 4 hours for half-day
-        - 8 hours * number of days for whole-day
-        """
+        """Return leave hours: 4 for half-day, else 8h * days."""
         if self.leave_type == self.HALF_DAY:
             return 4
         return int(self.leave_days() * 8)
 
     def deduct_leave(self) -> None:
-        """Deduct leave_count from employee (ensure it never goes below 0)."""
+        """Deduct leave_count from employee (ensure not below 0)."""
         days_to_deduct = Decimal(str(self.leave_days()))
-        self.employee.leave_count = max(self.employee.leave_count - days_to_deduct, Decimal("0.0"))
+        self.employee.leave_count = max(
+            self.employee.leave_count - days_to_deduct, Decimal("0.0")
+        )
         self.employee.save()
 
     def save(self, *args, **kwargs):
@@ -179,7 +177,7 @@ class Leave(models.Model):
 
         # Recalculate leave balance if status changed
         if (old_status != self.APPROVED and self.status == self.APPROVED) or \
-                (old_status == self.APPROVED and self.status != self.APPROVED):
+           (old_status == self.APPROVED and self.status != self.APPROVED):
             self.employee.refresh_leave_balance()
 
     def __str__(self) -> str:

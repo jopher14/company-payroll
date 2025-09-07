@@ -23,6 +23,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     date_schedules = EmployeeSchedule.objects.filter(employee=user)  # date-specific schedules
     # Fetch ScheduleChangeRequests for this user (pending or approved)
     change_requests = ScheduleChangeRequest.objects.filter(employee=user, status__in=["pending", "approved"])
+    approved_change_requests = change_requests.filter(status="approved")
 
     events: list[dict[str, Any]] = []
 
@@ -37,28 +38,38 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         })
 
     # Leave events
-    for leave in leaves:
-        for n in range((leave.end_date - leave.start_date).days + 1):
+    for leave in leaves.filter(status=Leave.APPROVED):  # Only approved leaves
+        days = (leave.end_date - leave.start_date).days + 1
+        for n in range(days):
             current_date = leave.start_date + timedelta(days=n)
-            title = "Leave"
-            color = "blue"
-            if getattr(leave, "type", None) == "half-day":
+
+            if leave.leave_type == Leave.HALF_DAY:
                 title = "Half-Day Leave"
                 color = "orange"
+            else:
+                title = "Whole-Day Leave"
+                color = "blue"
+
             events.append({
                 "title": title,
                 "start": current_date.isoformat(),
                 "color": color,
-                "tooltip": title
+                "tooltip": f"{leave.employee.get_full_name()} - {title}",
+                "allDay": True,
             })
 
     # Schedule change requests events
     for req in change_requests:
+        if req in approved_change_requests:
+            color = "green"
+        else:
+            color = "grey"
+
         events.append({
             "title": f"{req.requested_time_in.strftime('%H:%M')} - {req.requested_time_out.strftime('%H:%M')}",
             "start": req.date.isoformat(),
-            "color": "green",   # always green
-            "tooltip": f"{req.requested_time_in.strftime('%H:%M')} - {req.requested_time_out.strftime('%H:%M')}",
+            "color": color,   # always green
+            "tooltip": "Waiting for approval.",
             "allDay": True
         })
 

@@ -11,6 +11,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils.timezone import now, localtime
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 
 @login_required
@@ -68,15 +69,31 @@ def employee_list(request: HttpRequest) -> HttpResponse:
 # --- EMPLOYEE ---
 @login_required
 def file_leave(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
+
     if request.method == "POST":
         form = LeaveForm(request.POST)
         if form.is_valid():
             leave = form.save(commit=False)
-            leave.employee = request.user
+            leave.employee = user
+
+            # Ensure leave_type is valid
+            if leave.leave_type not in dict(Leave.LEAVE_TYPE_CHOICES):
+                messages.error(request, "Invalid leave type selected.")
+                return redirect("users:file_leave")
+
+            # Auto-set end_date for half-day leaves (same as start_date)
+            if leave.leave_type == Leave.HALF_DAY:
+                leave.end_date = leave.start_date
+
             leave.save()
+            messages.success(request, "Leave request submitted successfully.")
             return redirect("users:my_leaves")
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         form = LeaveForm()
+
     return render(request, "leave/file_leave.html", {"form": form})
 
 
@@ -689,31 +706,28 @@ def get_schedule_for_date(request: HttpRequest) -> HttpResponse:
 @login_required
 def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
-    user_role = user.role
 
-    if user_role == "supervisor":
-        # Only see PENDING requests from employees
-        requests = ScheduleChangeRequest.objects.filter(
-            employee__role="employee",
-            status=ScheduleChangeRequest.PENDING
-        ).order_by("-created_at")
+    if user.role == "employee":
+        # Employees see only their own requests
+        requests = ScheduleChangeRequest.objects.filter(employee=user, status="pending")
 
-    elif user_role == "manager":
-        # Only see PENDING requests from supervisors
+    elif user.role == "supervisor":
+        # Supervisors see:
+        # 1. Their own requests
+        # 2. Pending requests from employees
         requests = ScheduleChangeRequest.objects.filter(
-            employee__role="supervisor",
-            status=ScheduleChangeRequest.PENDING
-        ).order_by("-created_at")
+            Q(employee=user) | Q(employee__role="employee"),
+            status="pending"
+        )
+
+    elif user.role == "manager":
+        # Managers see only supervisor requests
+        requests = ScheduleChangeRequest.objects.filter(employee__role="supervisor", status="pending")
 
     else:
-        # Employees see only their own requests (all statuses)
-        requests = ScheduleChangeRequest.objects.filter(employee=user).order_by("-created_at")
+        requests = ScheduleChangeRequest.objects.none()
 
-    return render(
-        request,
-        "attendance/pending_schedule_changes.html",
-        {"requests": requests}
-    )
+    return render(request, "attendance/pending_schedule_changes.html", {"requests": requests})
 
 
 @login_required
