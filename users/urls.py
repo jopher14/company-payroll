@@ -33,6 +33,13 @@ urlpatterns = [
     # Attendance
     path(route="attendance/log/", view=views.log_attendance, name="log_attendance"),
     path(route='attendance/', view=views.attendance_list, name='attendance_list'),
+    path(route="request-schedule-change/", view=views.request_schedule_change, name="request_schedule_change"),
+    path(route="pending-schedule-changes/", view=views.pending_schedule_changes, name="pending_schedule_changes"),
+    path(route="edit-schedule-change/<int:pk>/", view=views.edit_schedule_change, name="edit_schedule_change"),
+    path(route="delete-schedule-change/<int:pk>/", view=views.delete_schedule_change, name="delete_schedule_change"),
+    path(route='approve-schedule-change/<int:pk>/', view=views.approve_schedule_change, name='approve_schedule_change'),
+    path(route='reject-schedule-change/<int:pk>/', view=views.reject_schedule_change, name='reject_schedule_change'),
+    path(route='ajax/get-schedule/', view=views.get_schedule_for_date, name='ajax_get_schedule'),
 
     # Overtime
     path(route="overtimes/", view=views.overtime_list, name="overtime_list"),

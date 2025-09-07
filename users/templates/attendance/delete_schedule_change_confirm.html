@@ -1,0 +1,16 @@
+{% extends "main/base.html" %}
+
+{% block title %}Delete Schedule Change Request{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>🗑️ Delete Schedule Change Request</h3>
+    <p>Are you sure you want to delete this schedule change request for <strong>{{ object.employee.get_full_name|default:object.employee.username }}</strong> on <strong>{{ object.date }}</strong>?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

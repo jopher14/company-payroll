@@ -1,0 +1,94 @@
+{% extends "main/base.html" %}
+{% load widget_tweaks %}
+{% block title %}Request Schedule Change{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 650px;">
+  <div class="card shadow-lg border-0 rounded-3">
+    <div class="card-header bg-gradient bg-primary text-white d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">📅 Request Schedule Change</h4>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <!-- Date Field -->
+        <div class="mb-3">
+          {{ form.date.label_tag }}
+          {{ form.date|add_class:"form-control" }}
+        </div>
+
+        <!-- Schedule Field (readonly) -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Schedule</label>
+          <input type="text" id="schedule-field" class="form-control" readonly>
+        </div>
+
+        <!-- Requested Time In / Out -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">{{ form.requested_time_in.label }}</label>
+            {{ form.requested_time_in }}
+            {% for error in form.requested_time_in.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">{{ form.requested_time_out.label }}</label>
+            {{ form.requested_time_out }}
+            {% for error in form.requested_time_out.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="mb-3">
+          {{ form.reason.label_tag }}
+          {{ form.reason|add_class:"form-control" }}
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-end gap-2">
+          <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-secondary">
+            ❌ Cancel
+          </a>
+          <button type="submit" class="btn btn-success px-4">
+            ✅ Submit Request
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dateInput = document.querySelector("#id_date"); // Django's auto-generated id
+    const scheduleField = document.querySelector("#schedule-field");
+
+    dateInput.addEventListener("change", function() {
+        const selectedDate = this.value;
+        if (!selectedDate) {
+            scheduleField.value = "";
+            return;
+        }
+
+        // AJAX request to Django view
+        fetch(`/users/ajax/get-schedule/?date=${selectedDate}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.time_in && data.time_out) {
+                    scheduleField.value = `${data.time_in} - ${data.time_out}`;
+                } else {
+                    scheduleField.value = "No schedule found";
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching schedule:", error);
+                scheduleField.value = "Error loading schedule";
+            });
+    });
+});
+</script>
+{% endblock %}

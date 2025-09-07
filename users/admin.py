@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Leave, Attendance, Schedule, Overtime
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule
 from payroll.models import Payroll
 
 
@@ -80,6 +80,21 @@ class ScheduleAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
 
 
+@admin.register(EmployeeSchedule)
+class EmployeeScheduleAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "date",
+        "time_in",
+        "time_out",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = ("employee__role", "date")
+    search_fields = ("employee__username", "employee__first_name", "employee__last_name")
+    ordering = ("-date",)
+
+
 @admin.register(Overtime)
 class OvertimeAdmin(admin.ModelAdmin):
     list_display = ("employee", "date", "hours", "reason", "status", "get_approved_by")
@@ -94,3 +109,21 @@ class PayrollInline(admin.TabularInline):  # Or admin.StackedInline
     extra = 0
     fields = ("basic_salary", "sss", "philhealth", "pagibig", "withholding_tax", "net_pay", "created_at")
     readonly_fields = ("created_at",)
+
+
+@admin.register(ScheduleChangeRequest)
+class ScheduleChangeRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        'employee',
+        'schedule',
+        'date',
+        'requested_time_in',
+        'requested_time_out',
+        'status',
+        'approved_by',
+        'created_at',
+    )
+    list_filter = ('status', 'date', 'employee')
+    search_fields = ('employee__username', 'employee__first_name', 'employee__last_name', 'reason')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)

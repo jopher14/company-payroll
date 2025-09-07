@@ -1,0 +1,14 @@
+{% extends "main/base.html" %}
+{% block title %}Edit Schedule Change{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>Edit Schedule Change Request</h3>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Save Changes</button>
+    <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

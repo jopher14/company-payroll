@@ -41,6 +41,7 @@
               <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-dark">📊 View Reports</a>
               <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
               <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Approve Schedule Changes</a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
@@ -49,12 +50,15 @@
               <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
               <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
               <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule </a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">📋 Approve Schedule Changes</a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
             {% if user.role == "employee" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
               <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule </a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
@@ -130,36 +134,34 @@
   </div>
 </div>
 
-<!-- FullCalendar scripts -->
+<!-- FullCalendar CSS/JS -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const calendarEl = document.getElementById("attendance-calendar");
+document.addEventListener("DOMContentLoaded", function () {
+  const calendarEl = document.getElementById("attendance-calendar");
+  const events = JSON.parse('{{ attendance_events|escapejs }}');
 
-    // Parse safely from Django context
-    const events = JSON.parse('{{ attendance_events|escapejs }}');
-
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: "dayGridMonth",
-      height: "auto",
-      events: events,  // 👈 valid JS array now
-      eventDisplay: "block",
-      eventDidMount: function(info) {
-        if (info.event.title) {
-          new bootstrap.Tooltip(info.el, {
-            title: info.event.title,
-            placement: "top",
-            trigger: "hover",
-            container: "body"
-          });
-        }
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: "dayGridMonth",
+    height: "auto",
+    events: events,
+    eventDisplay: "block",
+    eventDidMount: function(info) {
+      if (info.event.extendedProps.tooltip) {
+        new bootstrap.Tooltip(info.el, {
+          title: info.event.extendedProps.tooltip,
+          placement: "top",
+          trigger: "hover",
+          container: "body"
+        });
       }
-    });
-
-    calendar.render();
+    }
   });
+
+  calendar.render();
+});
 </script>
 
 <style>

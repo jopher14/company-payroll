@@ -1,9 +1,9 @@
 from typing import cast, Any
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import User, Leave, Attendance, Schedule, Overtime
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule
 from django.http import HttpResponse, HttpRequest
-from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm
+from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm
 from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -628,3 +628,172 @@ def overtime_delete(request: HttpRequest, pk) -> HttpResponse:
         return redirect("users:overtime_list")
 
     return render(request, "overtime/overtime_confirm_delete.html", {"overtime": overtime})
+
+
+@login_required
+def request_schedule_change(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
+
+    if request.method == "POST":
+        form = ScheduleChangeRequestForm(request.POST, employee=user)
+        if form.is_valid():
+            change_request = form.save(commit=False)
+            change_request.employee = user
+
+            date_obj = form.cleaned_data["date"]
+            day_number = date_obj.isoweekday()
+
+            # 1️⃣ Check if there's a date-specific schedule
+            date_schedule = EmployeeSchedule.objects.filter(employee=user, date=date_obj).first()
+            if date_schedule:
+                # Do not assign to schedule ForeignKey
+                change_request.requested_time_in = date_schedule.time_in
+                change_request.requested_time_out = date_schedule.time_out
+            else:
+                # 2️⃣ Fallback to recurring schedule
+                recurring_schedule = Schedule.objects.filter(employee=user, days_of_week__in=[day_number]).first()
+                change_request.schedule = recurring_schedule
+                if recurring_schedule:
+                    change_request.requested_time_in = recurring_schedule.time_in
+                    change_request.requested_time_out = recurring_schedule.time_out
+
+            change_request.save()
+            return redirect("users:pending_schedule_changes")
+        else:
+            print(form.errors)  # Debug why form is invalid
+    else:
+        form = ScheduleChangeRequestForm(employee=user)
+
+    return render(request, "attendance/request_schedule_change.html", {"form": form})
+
+
+@login_required
+def get_schedule_for_date(request: HttpRequest) -> HttpResponse:
+    date_str = request.GET.get("date")
+    if not date_str:
+        return JsonResponse({"error": "No date provided"}, status=400)
+
+    user = cast(User, request.user)
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    day_number = date_obj.isoweekday()  # Monday=1, Sunday=7
+
+    schedule = Schedule.objects.filter(employee=user, days_of_week__in=[day_number]).first()
+    if schedule:
+        return JsonResponse({
+            "time_in": schedule.time_in.strftime("%H:%M"),
+            "time_out": schedule.time_out.strftime("%H:%M"),
+        })
+    return JsonResponse({"time_in": None, "time_out": None})
+
+
+@login_required
+def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
+    user_role = user.role
+
+    if user_role == "supervisor":
+        # Only see PENDING requests from employees
+        requests = ScheduleChangeRequest.objects.filter(
+            employee__role="employee",
+            status=ScheduleChangeRequest.PENDING
+        ).order_by("-created_at")
+
+    elif user_role == "manager":
+        # Only see PENDING requests from supervisors
+        requests = ScheduleChangeRequest.objects.filter(
+            employee__role="supervisor",
+            status=ScheduleChangeRequest.PENDING
+        ).order_by("-created_at")
+
+    else:
+        # Employees see only their own requests (all statuses)
+        requests = ScheduleChangeRequest.objects.filter(employee=user).order_by("-created_at")
+
+    return render(
+        request,
+        "attendance/pending_schedule_changes.html",
+        {"requests": requests}
+    )
+
+
+@login_required
+def approve_schedule_change(request: HttpRequest, pk: int) -> HttpResponse:
+    user = cast(User, request.user)
+    change_request = get_object_or_404(ScheduleChangeRequest, pk=pk)
+
+    # Only supervisors can approve employees, managers can approve supervisors
+    if (user.role == "supervisor" and change_request.employee.role == "employee") or \
+       (user.role == "manager" and change_request.employee.role == "supervisor"):
+
+        # Approve the request
+        change_request.status = "approved"
+        change_request.approved_by = user
+        change_request.save()
+
+        # Update or create schedule only for the requested date
+        EmployeeSchedule.objects.update_or_create(
+            employee=change_request.employee,
+            date=change_request.date,
+            defaults={
+                "time_in": change_request.requested_time_in,
+                "time_out": change_request.requested_time_out
+            }
+        )
+
+    return redirect('users:pending_schedule_changes')
+
+
+@login_required
+def reject_schedule_change(request: HttpRequest, pk) -> HttpResponse:
+    user = cast(User, request.user)
+    change_request = get_object_or_404(ScheduleChangeRequest, pk=pk)
+
+    if (user.role == "supervisor" and change_request.employee.role == "employee") or \
+       (user.role == "manager" and change_request.employee.role == "supervisor"):
+
+        change_request.status = "rejected"
+        change_request.approved_by = user
+        change_request.save()
+
+    return redirect('users:pending_schedule_changes')
+
+
+@login_required
+def edit_schedule_change(request: HttpRequest, pk) -> HttpResponse:
+    change_request = get_object_or_404(ScheduleChangeRequest, pk=pk)
+
+    # Only allow the employee who created it to edit
+    if request.user != change_request.employee:
+        return redirect('users:pending_schedule_changes')
+
+    if request.method == "POST":
+        form = ScheduleChangeRequestForm(request.POST, instance=change_request, employee=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('users:pending_schedule_changes')
+    else:
+        form = ScheduleChangeRequestForm(instance=change_request, employee=request.user)
+
+    return render(request, "attendance/edit_schedule_change.html", {"form": form})
+
+
+@login_required
+def delete_schedule_change(request: HttpRequest, pk: int) -> HttpResponse:
+    change_request = get_object_or_404(ScheduleChangeRequest, pk=pk)
+
+    # Only the request owner can delete
+    if request.user != change_request.employee:
+        messages.error(request, "You are not allowed to delete this request.")
+        return redirect("users:pending_schedule_changes")
+
+    if request.method == "POST":
+        change_request.delete()
+        messages.success(request, "Schedule change request deleted successfully.")
+        return redirect("users:pending_schedule_changes")
+
+    # Render confirmation page
+    return render(
+        request,
+        "attendance/delete_schedule_change_confirm.html",
+        {"object": change_request}  # standard Django naming for DeleteView compatibility
+    )

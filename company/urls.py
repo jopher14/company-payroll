@@ -30,7 +30,7 @@ urlpatterns = [
     path("", include('main.urls')),
 
     # users app
-    path("users/", include("users.urls")),
+    path("users/", include("users.urls", namespace="users")),
 
     # payroll app
     path('payroll/', include('payroll.urls')),

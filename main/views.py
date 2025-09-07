@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpRequest, HttpResponse
 from .forms import AnnouncementForm
 from .models import Announcement
-from users.models import Attendance, Leave, Schedule
+from users.models import Attendance, Leave, Schedule, EmployeeSchedule, ScheduleChangeRequest
 from users.forms import User
 from datetime import timedelta
 from calendar import monthrange
@@ -16,77 +16,118 @@ from django.utils.timezone import localdate
 def dashboard(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
+    # Fetch data
     attendance_logs = Attendance.objects.filter(employee=user)
     leaves = Leave.objects.filter(employee=user, status=Leave.APPROVED)
-    schedules = Schedule.objects.filter(employee=user)
+    schedules = Schedule.objects.filter(employee=user)  # recurring weekly schedules
+    date_schedules = EmployeeSchedule.objects.filter(employee=user)  # date-specific schedules
+    # Fetch ScheduleChangeRequests for this user (pending or approved)
+    change_requests = ScheduleChangeRequest.objects.filter(employee=user, status__in=["pending", "approved"])
 
     events: list[dict[str, Any]] = []
 
     # Attendance events
     for log in attendance_logs:
-        if not log.time_in or not log.time_out:
-            title, color = "Half-Day", "orange"
-        else:
-            title, color = "Present", "green"
-
+        title, color = ("Half-Day", "orange") if not log.time_in or not log.time_out else ("Present", "green")
         events.append({
             "title": title,
             "start": log.date.isoformat(),
-            "color": color
+            "color": color,
+            "tooltip": title
         })
 
     # Leave events
     for leave in leaves:
+        for n in range((leave.end_date - leave.start_date).days + 1):
+            current_date = leave.start_date + timedelta(days=n)
+            title = "Leave"
+            color = "blue"
+            if getattr(leave, "type", None) == "half-day":
+                title = "Half-Day Leave"
+                color = "orange"
+            events.append({
+                "title": title,
+                "start": current_date.isoformat(),
+                "color": color,
+                "tooltip": title
+            })
+
+    # Schedule change requests events
+    for req in change_requests:
         events.append({
-            "title": "Leave",
-            "start": leave.start_date.isoformat(),
-            "end": (leave.end_date + timedelta(days=1)).isoformat(),
-            "color": "blue"
+            "title": f"{req.requested_time_in.strftime('%H:%M')} - {req.requested_time_out.strftime('%H:%M')}",
+            "start": req.date.isoformat(),
+            "color": "green",   # always green
+            "tooltip": f"{req.requested_time_in.strftime('%H:%M')} - {req.requested_time_out.strftime('%H:%M')}",
+            "allDay": True
         })
 
-    # Absent / Day Off logic
     today = localdate()
     days_in_month = monthrange(today.year, today.month)[1]
 
-    scheduled_days = {d.number - 1 for s in schedules for d in s.days_of_week.all()}
+    # Recurring weekly schedule weekdays (0=Monday)
+    recurring_weekdays = {d.number - 1 for s in schedules for d in s.days_of_week.all()}
+
+    # Dates with attendance or leave
     attended_dates = {log.date for log in attendance_logs} | {
         leave.start_date + timedelta(n)
         for leave in leaves
         for n in range((leave.end_date - leave.start_date).days + 1)
     }
 
+    # Process each day for absences
     for day in range(1, days_in_month + 1):
-        date = today.replace(day=day)
-
-        # Skip future dates
-        if date > today:
+        current_date = today.replace(day=day)
+        if current_date > today:
             continue
 
-        # Day Off for weekends
-        if date.weekday() in [5, 6]:  # Saturday=5, Sunday=6
+        # Day Off
+        if current_date.weekday() in [5, 6]:
             events.append({
                 "title": "Day Off",
-                "start": date.isoformat(),
-                "color": "gray"
+                "start": current_date.isoformat(),
+                "color": "gray",
+                "tooltip": "Day Off"
             })
             continue
 
-        # Absent if scheduled and no attendance/leave
-        if date.weekday() in scheduled_days and date not in attended_dates:
+        # Date-specific schedule
+        specific_schedule = date_schedules.filter(date=current_date).first()
+        if specific_schedule:
+            events.append({
+                "title": f"{specific_schedule.time_in.strftime('%H:%M')} - {specific_schedule.time_out.strftime('%H:%M')}",
+                "start": current_date.isoformat(),
+                "color": "grey",
+                "tooltip": "Special Schedule",
+                "allDay": True
+            })
+            if current_date not in attended_dates:
+                events.append({
+                    "title": "Absent",
+                    "start": current_date.isoformat(),
+                    "color": "red",
+                    "tooltip": "Absent"
+                })
+            continue
+
+        # Recurring schedule absent
+        if current_date.weekday() in recurring_weekdays and current_date not in attended_dates:
             events.append({
                 "title": "Absent",
-                "start": date.isoformat(),
-                "color": "red"
+                "start": current_date.isoformat(),
+                "color": "red",
+                "tooltip": "Absent"
             })
 
-    # Schedule recurring events
+    # Add recurring schedules for display
     for sched in schedules:
         for day_obj in sched.days_of_week.all():
             events.append({
                 "title": f"{sched.time_in.strftime('%H:%M')} - {sched.time_out.strftime('%H:%M')}",
-                "daysOfWeek": str([day_obj.number - 1]),  # linter issue
+                "daysOfWeek": [day_obj.number - 1],
                 "color": "grey",
-                "allDay": True,
+                "tooltip": "Recurring Schedule",
+                "allDay": True
             })
 
     context = {
@@ -94,6 +135,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "attendance_events": json.dumps(events),
         "announcement": Announcement.objects.all().order_by("-created_at")[:5],
     }
+
     return render(request, "main/dashboard.html", context)
 
 

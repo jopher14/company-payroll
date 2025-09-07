@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Leave, Attendance, Schedule, Overtime, Day
+from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest
+from datetime import time
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -136,3 +137,41 @@ class OvertimeForm(forms.ModelForm):
                 "placeholder": "Enter reason for overtime"
             }),
         }
+
+
+class ScheduleChangeRequestForm(forms.ModelForm):
+    requested_time_in = forms.ChoiceField(choices=TIME_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    requested_time_out = forms.ChoiceField(choices=TIME_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = ScheduleChangeRequest
+        fields = ["schedule", "date", "requested_time_in", "requested_time_out", "reason"]
+        widgets = {
+            "schedule": forms.Select(attrs={"class": "form-control"}),
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "reason": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        employee = kwargs.pop("employee", None)
+        super().__init__(*args, **kwargs)
+
+        # Do not require schedule in the form
+        self.fields["schedule"].required = False
+
+        # Pre-fill times from the first schedule
+        if employee and employee.schedule.exists():
+            schedule = employee.schedule.first()
+            if schedule:
+                self.fields["requested_time_in"].initial = schedule.time_in.strftime("%H:%M")
+                self.fields["requested_time_out"].initial = schedule.time_out.strftime("%H:%M")
+
+    def clean_requested_time_in(self):
+        t = self.cleaned_data["requested_time_in"]
+        h, m = map(int, t.split(":"))
+        return time(h, m)
+
+    def clean_requested_time_out(self):
+        t = self.cleaned_data["requested_time_out"]
+        h, m = map(int, t.split(":"))
+        return time(h, m)

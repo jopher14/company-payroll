@@ -108,7 +108,7 @@ class Leave(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     leave_type = models.CharField(
-        max_length=10, choices=LEAVE_TYPE_CHOICES, default=WHOLE_DAY
+        max_length=10, choices=[("full", "Full Day"), ("half", "Half Day")]
     )
     reason = models.TextField()
     status = models.CharField(
@@ -246,6 +246,23 @@ class Schedule(models.Model):
         return f"{self.employee.username} - {days} ({self.time_in} - {self.time_out})"
 
 
+class EmployeeSchedule(models.Model):
+    employee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="date_schedules"
+    )
+    date = models.DateField()
+    time_in = models.TimeField()
+    time_out = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('employee', 'date')  # Ensure only one schedule per employee per date
+
+    def __str__(self):
+        return f"{self.employee.username} - {self.date} ({self.time_in} - {self.time_out})"
+
+
 class Overtime(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
@@ -268,6 +285,57 @@ class Overtime(models.Model):
         blank=True,
         related_name="reviewed_overtime"
     )
+
+    def __str__(self):
+        return f"{self.employee} - {self.date} ({self.status})"
+
+
+class ScheduleChangeRequest(models.Model):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
+    ]
+
+    employee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(
+        "Schedule", on_delete=models.CASCADE, null=True, blank=True, related_name="change_requests"
+    )
+    date = models.DateField()
+
+    # ✅ Use model fields, not form fields
+    requested_time_in = models.TimeField()
+    requested_time_out = models.TimeField()
+
+    reason = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=PENDING,
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="approved_schedule_changes",
+        on_delete=models.SET_NULL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def approve(self, approver):
+        """Approve request and update the schedule"""
+        self.status = self.APPROVED
+        self.approved_by = approver
+        self.save()
+
+        # Update the actual schedule
+        self.schedule.time_in = self.requested_time_in
+        self.schedule.time_out = self.requested_time_out
+        self.schedule.save()
 
     def __str__(self):
         return f"{self.employee} - {self.date} ({self.status})"
