@@ -21,7 +21,14 @@
 
         <!-- Sidebar Body -->
         <div class="card-body p-3">
-          <h5 class="card-title text-center mb-4">📌 Quick Menu</h5>
+          <h5 class="card-title text-center mb-4">
+            {% if user.role == "employee" %} 👨‍🔧
+            {% elif user.role == "supervisor" %} 🧑‍💼
+            {% elif user.role == "manager" %} 👔
+            {% elif user.role == "human_resources" or user.is_superuser %} 🏢
+            {% endif %}
+            Quick Menu 
+          </h5>
           <div class="d-grid gap-2">
 
             {% if user.role == "human_resources" or user.is_superuser %}
@@ -38,28 +45,36 @@
 
             {% if user.role == "manager" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
-              <a href="{% url 'users:attendance_list' %}" class="btn btn-outline-dark">📊 View Reports</a>
+
+              <!-- Approvals -->
               <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
               <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Approve Schedule Changes</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">📋 Approve Schedule Changes</a>
+
+              <!-- Payroll -->
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
             {% if user.role == "supervisor" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+
+              <!-- Approvals -->
               <a href="{% url 'users:pending_leaves' %}" class="btn btn-outline-dark">📑 Check Leave Requests</a>
               <a href="{% url 'users:pending_overtimes' %}" class="btn btn-outline-dark">⏰ Check Overtime Requests</a>
-              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule </a>
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">📋 Approve Schedule Changes</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">📋 Check Schedule Changes</a>
+
+              <!-- Own schedule -->
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
             {% if user.role == "employee" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
               <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule </a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+
             {% endif %}
 
           </div>
