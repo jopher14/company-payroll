@@ -32,58 +32,86 @@
     </form>
   </div>
 
-  <!-- Schedule Table -->
-  <div class="card shadow-sm border-0 rounded-3">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0">Current Schedules</h5>
-    </div>
-    <div class="card-body p-0">
-      <table class="table align-middle mb-0">
-        <thead class="table">
-          <tr>
-            <th>Employee</th>
-            <th>Day(s)</th>
-            <th class="text-center">Time In</th>
-            <th class="text-center">Time Out</th>
-            <th class="text-center">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for group in schedules_grouped %}
-          <tr>
-            <td class="fw-semibold">{{ group.employee.get_full_name }}</td>
-            <td>
-              {% for sched in group.schedules %}
-                <span class="badge text-dark px-3 py-2 rounded-pill">
-                  {{ sched.get_days_display }}
-                </span>
-              {% endfor %}
-            </td>
-            <td class="text-center">
-              <i class="bi bi-clock text-success"></i>
-              {{ group.schedules.0.time_in|time:"H:i" }}
-            </td>
-            <td class="text-center">
-              <i class="bi bi-clock-fill text-danger"></i>
-              {{ group.schedules.0.time_out|time:"H:i" }}
-            </td>
-            <td class="text-center">
-              <a href="{% url 'users:edit_schedule' group.employee.id %}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-pencil-square"></i> Edit
-              </a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">
-              <i class="bi bi-info-circle"></i> No schedules set.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <!-- Accordion for Employee Schedules -->
+  <div class="accordion" id="scheduleAccordion">
+    {% for group in schedules_grouped %}
+      <div class="accordion-item mb-2 shadow-sm rounded-3 border-0">
+        <h2 class="accordion-header" id="heading-{{ group.employee.id }}">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse-{{ group.employee.id }}"
+                  aria-expanded="false"
+                  aria-controls="collapse-{{ group.employee.id }}">
+            👤 {{ group.employee.get_full_name }}
+          </button>
+        </h2>
+        <div id="collapse-{{ group.employee.id }}" class="accordion-collapse collapse"
+             aria-labelledby="heading-{{ group.employee.id }}"
+             data-bs-parent="#scheduleAccordion">
+          <div class="accordion-body">
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Day(s)</th>
+                    <th class="text-center">Time In</th>
+                    <th class="text-center">Time Out</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sched in group.schedules %}
+                    {% for day in sched.days_of_week.all %}
+                      <tr>
+                        <!-- Day -->
+                        <td>
+                          <span class="badge bg-light text-dark px-3 py-2 rounded-pill">
+                            {{ day.name }}
+                          </span>
+                        </td>
+                        <!-- Time In -->
+                        <td class="text-center">
+                          <i class="bi bi-clock text-success"></i>
+                          {{ sched.time_in|time:"H:i" }}
+                        </td>
+                        <!-- Time Out -->
+                        <td class="text-center">
+                          <i class="bi bi-clock-fill text-danger"></i>
+                          {{ sched.time_out|time:"H:i" }}
+                        </td>
+                        <!-- Action (once per schedule group) -->
+                        {% if forloop.first %}
+                          <td class="text-center" rowspan="{{ sched.days_of_week.count }}">
+                            <a href="{% url 'users:edit_schedule' group.employee.id %}" 
+                               class="btn btn-sm btn-outline-primary">
+                              <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                          </td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                  {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-4">
+                        <i class="bi bi-info-circle"></i> No schedules set.
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i> No schedules available.
+      </div>
+    {% endfor %}
   </div>
+<a href="{% url 'users:employee_list' %}" class="btn btn-outline-secondary w-100 mb-3">
+  Back
+</a>
 </div>
 
 <!-- Bootstrap Icons -->

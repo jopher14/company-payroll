@@ -240,8 +240,9 @@ class Schedule(models.Model):
         return ", ".join(day.name for day in self.days_of_week.all())
 
     def __str__(self):
-        days = ", ".join(day.name for day in self.days_of_week.all())
-        return f"{self.employee.username} - {days} ({self.time_in} - {self.time_out})"
+        days = self.days_of_week.all().order_by("id")  # order Mon-Sun if Day model uses id for that
+        schedule_lines = [f"{day.name} {self.time_in.strftime('%H:%M')}-{self.time_out.strftime('%H:%M')}" for day in days]
+        return "\n".join(schedule_lines)
 
 
 class EmployeeSchedule(models.Model):
