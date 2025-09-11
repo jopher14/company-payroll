@@ -8,12 +8,12 @@
     <h3 class="mb-3">Log Attendance</h3>
     <p>Today: {{ attendance.date }}</p>
 
-    <!-- Show scheduled time -->
+    <!-- ✅ Show scheduled time (Approved / HR Default) -->
     <p class="text-muted mb-1">
-      {% if schedule %}
-        🕒 {{ schedule.time_in|time:"H:i" }} - {{ schedule.time_out|time:"H:i" }}
+      {% if schedule_in and schedule_out %}
+        🕒 {{ schedule_in|time:"H:i" }} - {{ schedule_out|time:"H:i" }}
       {% else %}
-        <span class="text-muted">Not set</span>
+        <span class="text-muted">No schedule set</span>
       {% endif %}
     </p>
 

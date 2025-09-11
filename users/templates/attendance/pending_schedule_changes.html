@@ -1,8 +1,10 @@
 {% extends "main/base.html" %}
-{% block title %}Pending Schedule Changes{% endblock %}
+{% block title %}Schedule Change Requests{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
+
+  <!-- ✅ Pending Requests -->
   <h3>📋 Pending Schedule Change Requests</h3>
   <table class="table table-bordered mt-3">
     <thead class="table-dark">
@@ -48,20 +50,12 @@
             {% elif req.employee == user %}
               <a href="{% url 'users:edit_schedule_change' req.pk %}" class="btn btn-primary btn-sm">Edit</a>
               <a href="{% url 'users:delete_schedule_change' req.pk %}" class="btn btn-danger btn-sm"
-                onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
+                 onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
             {% else %}
               <span class="text-muted">No actions</span>
             {% endif %}
           {% else %}
-            {% if req.employee == user %}
-              <!-- Employee sees status but no actions -->
-              <span class="badge {% if req.status == 'approved' %}bg-success{% else %}bg-danger{% endif %}">
-                {{ req.status|capfirst }}
-              </span>
-            {% else %}
-              <!-- Supervisors/managers do not see approved/rejected requests -->
-              <span class="text-muted">No actions</span>
-            {% endif %}
+            <span class="text-muted">No actions</span>
           {% endif %}
         </td>
       </tr>
@@ -72,7 +66,53 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- ✅ History of Approved/Rejected -->
+  <h3 class="mt-5">📜 History of Schedule Change Requests</h3>
+  <table class="table table-bordered mt-3">
+    <thead class="table-light">
+      <tr>
+        <th>Employee</th>
+        <th>Date</th>
+        <th>New Time In</th>
+        <th>New Time Out</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Reviewed By</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for hist in history %}
+      <tr>
+        <td>{{ hist.employee.get_full_name|default:hist.employee.username }}</td>
+        <td>{{ hist.date }}</td>
+        <td>{{ hist.requested_time_in }}</td>
+        <td>{{ hist.requested_time_out }}</td>
+        <td>{{ hist.reason }}</td>
+        <td>
+          {% if hist.status == 'approved' %}
+            <span class="badge bg-success">Approved</span>
+          {% elif hist.status == 'rejected' %}
+            <span class="badge bg-danger">Rejected</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if hist.approved_by %}
+            {{ hist.approved_by.get_full_name|default:hist.approved_by.username }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center">No approved or rejected requests yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <a href="{% url 'users:request_schedule_change' %}" class="btn btn-success mb-3">🗓 Request Schedule Change</a>
-  <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary mb-3"> Back </a>
+  <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary mb-3">Back</a>
 </div>
 {% endblock %}

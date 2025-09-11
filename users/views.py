@@ -1,4 +1,5 @@
-from typing import cast, Any
+from typing import cast, Any, Optional
+from datetime import time
 from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule
@@ -12,6 +13,7 @@ from django.utils.timezone import now, localtime
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.utils.timezone import localdate
 
 
 @login_required
@@ -219,14 +221,33 @@ def is_manager(user):
 def log_attendance(request: HttpRequest) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # This should never happen because of @login_required
         return HttpResponse("Invalid user", status=400)
 
-    today = localtime(now()).date()
+    today = localdate()
     current_time = localtime(now())
 
-    # Get schedule for this user
-    schedule = Schedule.objects.filter(employee=user).first()
+    # ✅ Check for an approved schedule change for today
+    approved_request = ScheduleChangeRequest.objects.filter(
+        employee=user,
+        date=today,
+        status="approved"
+    ).first()
+
+    schedule_in: Optional[time] = None
+    schedule_out: Optional[time] = None
+    if approved_request:
+        # Use the approved change schedule
+        schedule_in = approved_request.requested_time_in
+        schedule_out = approved_request.requested_time_out
+    else:
+        # Fall back to HR’s default schedule (recurring or date-specific)
+        schedule = EmployeeSchedule.objects.filter(employee=user, date=today).first()
+        if schedule:
+            schedule_in, schedule_out = schedule.time_in, schedule.time_out
+        else:
+            default_schedule = Schedule.objects.filter(employee=user).first()
+            schedule_in = default_schedule.time_in if default_schedule else None
+            schedule_out = default_schedule.time_out if default_schedule else None
 
     # Get or create attendance record for today
     attendance, created = Attendance.objects.get_or_create(
@@ -244,7 +265,8 @@ def log_attendance(request: HttpRequest) -> HttpResponse:
 
     return render(request, "attendance/log_attendance.html", {
         "attendance": attendance,
-        "schedule": schedule,
+        "schedule_in": schedule_in,
+        "schedule_out": schedule_out,
         "current_time": current_time,
     })
 
@@ -707,14 +729,13 @@ def get_schedule_for_date(request: HttpRequest) -> HttpResponse:
 def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
+    # --- Pending requests ---
     if user.role == "employee":
-        # Employees see only their own requests
+        # Employees see only their own pending requests
         requests = ScheduleChangeRequest.objects.filter(employee=user, status="pending")
 
     elif user.role == "supervisor":
-        # Supervisors see:
-        # 1. Their own requests
-        # 2. Pending requests from employees
+        # Supervisors see their own + pending employee requests
         requests = ScheduleChangeRequest.objects.filter(
             Q(employee=user) | Q(employee__role="employee"),
             status="pending"
@@ -722,12 +743,23 @@ def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
 
     elif user.role == "manager":
         # Managers see only supervisor requests
-        requests = ScheduleChangeRequest.objects.filter(employee__role="supervisor", status="pending")
-
+        requests = ScheduleChangeRequest.objects.filter(
+            employee__role="supervisor",
+            status="pending"
+        )
     else:
         requests = ScheduleChangeRequest.objects.none()
 
-    return render(request, "attendance/pending_schedule_changes.html", {"requests": requests})
+    # --- History (own requests only, approved/rejected) ---
+    history = ScheduleChangeRequest.objects.filter(
+        employee=user
+    ).exclude(status="pending").order_by("-date")
+
+    return render(
+        request,
+        "attendance/pending_schedule_changes.html",
+        {"requests": requests, "history": history},
+    )
 
 
 @login_required

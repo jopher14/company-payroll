@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from decimal import Decimal
 from django.templatetags.static import static
+from datetime import timezone
 
 
 class User(AbstractUser):
@@ -302,11 +303,14 @@ class ScheduleChangeRequest(models.Model):
 
     employee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     schedule = models.ForeignKey(
-        "Schedule", on_delete=models.CASCADE, null=True, blank=True, related_name="change_requests"
+        "Schedule",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="change_requests"
     )
     date = models.DateField()
 
-    # ✅ Use model fields, not form fields
     requested_time_in = models.TimeField()
     requested_time_out = models.TimeField()
 
@@ -316,6 +320,18 @@ class ScheduleChangeRequest(models.Model):
         choices=STATUS_CHOICES,
         default=PENDING,
     )
+
+    # ✅ Reviewer (HR, Supervisor, or Manager)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="reviewed_schedule_changes",
+        on_delete=models.SET_NULL,
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # (Optional: Keep for legacy, points to same as reviewed_by if approved)
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -323,18 +339,28 @@ class ScheduleChangeRequest(models.Model):
         related_name="approved_schedule_changes",
         on_delete=models.SET_NULL,
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def approve(self, approver):
         """Approve request and update the schedule"""
         self.status = self.APPROVED
-        self.approved_by = approver
+        self.reviewed_by = approver
+        self.approved_by = approver  # Keep consistency
+        self.reviewed_at = timezone.now()
         self.save()
 
-        # Update the actual schedule
-        self.schedule.time_in = self.requested_time_in
-        self.schedule.time_out = self.requested_time_out
-        self.schedule.save()
+        if self.schedule:
+            self.schedule.time_in = self.requested_time_in
+            self.schedule.time_out = self.requested_time_out
+            self.schedule.save()
+
+    def reject(self, reviewer):
+        """Reject request without updating the schedule"""
+        self.status = self.REJECTED
+        self.reviewed_by = reviewer
+        self.reviewed_at = timezone.now()
+        self.save()
 
     def __str__(self):
         return f"{self.employee} - {self.date} ({self.status})"
