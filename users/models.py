@@ -265,14 +265,14 @@ class EmployeeSchedule(models.Model):
 
 class Overtime(models.Model):
     OVERTIME_TYPES = [
-        ("ordinary", "OT"),
-        ("rest_day", "RD-OT"),
-        ("special_holiday", "SH-OT"),
-        ("special_holiday_rest", "SHRD-OT"),
-        ("regular_holiday", "RH-OT"),
-        ("regular_holiday_rest", "RHRD-OT"),
-        ("double_holiday", "DH-OT"),
-        ("double_holiday_rest", "DHRD-OT"),
+        ("ordinary", "Ordinary Day"),
+        ("restday", "Rest Day"),
+        ("special_holiday", "Special Holiday"),
+        ("special_holiday_restday", "Special Holiday + Rest Day"),
+        ("regular_holiday", "Regular Holiday"),
+        ("regular_holiday_restday", "Regular Holiday + Rest Day"),
+        ("double_holiday", "Double Holiday"),
+        ("double_holiday_restday", "Double Holiday + Rest Day"),
     ]
 
     OVERTIME_MULTIPLIERS = {

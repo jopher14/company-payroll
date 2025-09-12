@@ -1,14 +1,25 @@
 from typing import cast
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Payroll
-from users.models import User
+from users.models import User, Overtime
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest
 from django.contrib import messages
 from .utils import compute_sss, compute_philhealth, compute_pagibig, compute_withholding_tax
 from decimal import Decimal
 from datetime import datetime
-from payroll.utils import compute_daily_rate, compute_hourly_rate
+from payroll.utils import (
+    compute_daily_rate,
+    compute_hourly_rate,
+    compute_ordinary_ot,
+    compute_restday_ot,
+    compute_special_holiday_ot,
+    compute_special_holiday_restday_ot,
+    compute_regular_holiday_ot,
+    compute_regular_holiday_restday_ot,
+    compute_double_holiday_ot,
+    compute_double_holiday_restday_ot,
+)
 
 
 @login_required
@@ -115,13 +126,47 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
             sss = compute_sss(salary) / 2
             philhealth = compute_philhealth(salary) / 2
             pagibig = compute_pagibig(salary) / 2
-            tax = compute_withholding_tax(salary) / 2
+
+            # ✅ Placeholder holiday pay (to implement later)
+            holiday_pay = Decimal("0.00")
+
+            # ==========================
+            # ✅ OVERTIME COMPUTATION
+            # ==========================
+            overtime_pay = Decimal("0.00")
+
+            # Example: if you already have Overtime model linked to employee
+            overtime_logs = Overtime.objects.filter(
+                employee=emp,
+                date__year=year,
+                date__month=month,
+                status="approved"
+            )
+
+            for ot in overtime_logs:
+                hours = ot.hours or Decimal("0.00")
+
+                if ot.overtime_type == "ordinary":
+                    overtime_pay += compute_ordinary_ot(hourly_rate, hours)
+                elif ot.overtime_type == "restday":
+                    overtime_pay += compute_restday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "special_holiday":
+                    overtime_pay += compute_special_holiday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "special_holiday_restday":
+                    overtime_pay += compute_special_holiday_restday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "regular_holiday":
+                    overtime_pay += compute_regular_holiday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "regular_holiday_restday":
+                    overtime_pay += compute_regular_holiday_restday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "double_holiday":
+                    overtime_pay += compute_double_holiday_ot(hourly_rate, hours)
+                elif ot.overtime_type == "double_holiday_restday":
+                    overtime_pay += compute_double_holiday_restday_ot(hourly_rate, hours)
+
+            # ✅ Tax (includes overtime)
+            tax = compute_withholding_tax(salary, overtime_pay) / 2
 
             total_deductions = sss + philhealth + pagibig + tax
-
-            # ✅ Placeholder (later: fetch from Overtime & Holidays tables)
-            overtime_pay = Decimal("0.00")
-            holiday_pay = Decimal("0.00")
 
             net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
 
