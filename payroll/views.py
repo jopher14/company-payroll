@@ -8,6 +8,7 @@ from django.contrib import messages
 from .utils import compute_sss, compute_philhealth, compute_pagibig, compute_withholding_tax
 from decimal import Decimal
 from datetime import datetime
+from payroll.utils import compute_daily_rate, compute_hourly_rate
 
 
 @login_required
@@ -20,19 +21,37 @@ def my_payslips(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def view_payslip(request, pk):
+def view_payslip(request: HttpRequest, pk: int) -> HttpResponse:
     payslip = get_object_or_404(Payroll, pk=pk)
 
-    # Compute deductions if not stored already
+    # Compute gross, deductions, and net pay
     gross_salary = payslip.basic_salary + payslip.allowances
-    deductions = payslip.sss + payslip.philhealth + payslip.pagibig + payslip.withholding_tax
+    deductions = (
+        payslip.sss
+        + payslip.philhealth
+        + payslip.pagibig
+        + payslip.withholding_tax
+    )
     net_pay = gross_salary - deductions
+
+    # ✅ Use stored daily/hourly rate, fallback to utils if missing
+    daily_rate = payslip.daily_rate or compute_daily_rate(
+        payslip.employee.salary or Decimal("0.00"),
+        workdays_per_month=22,
+    )
+    hourly_rate = payslip.hourly_rate or compute_hourly_rate(
+        payslip.employee.salary or Decimal("0.00"),
+        workdays_per_month=22,
+        hours_per_day=8,
+    )
 
     context = {
         "payslip": payslip,
         "gross_salary": gross_salary,
         "deductions": deductions,
         "net_pay": net_pay,
+        "daily_rate": daily_rate,
+        "hourly_rate": hourly_rate,
     }
     return render(request, "payroll/my_payslip.html", context)
 
@@ -82,11 +101,15 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
             salary: Decimal = emp.salary or Decimal("0.00")
             allowances: Decimal = emp.allowances or (salary * Decimal("0.30"))
 
-            # ✅ Half salary + half allowances
+            # ✅ Daily & Hourly Rate (based on full monthly salary)
+            daily_rate = salary / Decimal("22")
+            hourly_rate = daily_rate / Decimal("8")
+
+            # ✅ Half salary + half allowances (semi-monthly payroll)
             half_salary = salary / 2
             half_allowances = allowances / 2
 
-            # ✅ Deductions
+            # ✅ Deductions (halved for semi-monthly)
             sss = compute_sss(salary) / 2
             philhealth = compute_philhealth(salary) / 2
             pagibig = compute_pagibig(salary) / 2
@@ -124,13 +147,19 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
                 withholding_tax=tax,
                 total_deductions=total_deductions,
                 net_pay=net_pay,
+                daily_rate=daily_rate,
+                hourly_rate=hourly_rate,
             )
 
         if skipped:
+            skipped_str = ", ".join(skipped[:5])
+            if len(skipped) > 5:
+                skipped_str += f" ... and {len(skipped)-5} more"
             messages.warning(
                 request,
-                f"Some payrolls already exist and were skipped: {', '.join(skipped)}",
+                f"Some payrolls already exist and were skipped: {skipped_str}",
             )
+
         messages.success(
             request,
             f"Payroll generated for {today.strftime('%B %Y')} ({period.replace('_', ' ').title()})!"

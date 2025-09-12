@@ -25,8 +25,11 @@
 
         <!-- Action Buttons -->
         <div class="d-flex justify-content-between">
-          <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left-circle"></i> Cancel
+          <a href="{% url 'main:dashboard' %}" class="btn btn-light shadow-sm border rounded px-3 py-2">
+            <i class="bi bi-arrow-left-circle me-1"></i> Cancel
+          </a>
+          <a href="{% url 'payroll:payroll_list' %}" class="btn btn-light shadow-sm border rounded px-3 py-2">
+            <i class="bi bi-list me-1"></i> Payroll List
           </a>
           <button type="submit" class="btn btn-success">
             <i class="bi bi-check2-circle"></i> Generate Payroll

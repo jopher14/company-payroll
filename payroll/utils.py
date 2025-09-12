@@ -1,4 +1,3 @@
-# payroll/utils.py
 from decimal import Decimal
 
 
@@ -37,3 +36,26 @@ def compute_withholding_tax(salary: Decimal) -> Decimal:
         return Decimal("33541.80") + (salary - Decimal("166667")) * Decimal("0.30")
     else:
         return Decimal("183541.80") + (salary - Decimal("666667")) * Decimal("0.35")
+
+
+# ✅ NEW FUNCTIONS
+def compute_daily_rate(salary: Decimal, workdays_per_month: int = 22) -> Decimal:
+    """
+    Compute daily rate based on monthly salary.
+    Default: 22 workdays/month (5-day workweek).
+    Use 26 for 6-day workweek.
+    """
+    if workdays_per_month <= 0:
+        raise ValueError("workdays_per_month must be greater than 0")
+    return salary / Decimal(workdays_per_month)
+
+
+def compute_hourly_rate(salary: Decimal, workdays_per_month: int = 22, hours_per_day: int = 8) -> Decimal:
+    """
+    Compute hourly rate based on daily rate.
+    Default: 8 hours/day.
+    """
+    daily_rate = compute_daily_rate(salary, workdays_per_month)
+    if hours_per_day <= 0:
+        raise ValueError("hours_per_day must be greater than 0")
+    return daily_rate / Decimal(hours_per_day)

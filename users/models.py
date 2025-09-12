@@ -264,20 +264,44 @@ class EmployeeSchedule(models.Model):
 
 
 class Overtime(models.Model):
+    OVERTIME_TYPES = [
+        ("ordinary", "OT"),
+        ("rest_day", "RD-OT"),
+        ("special_holiday", "SH-OT"),
+        ("special_holiday_rest", "SHRD-OT"),
+        ("regular_holiday", "RH-OT"),
+        ("regular_holiday_rest", "RHRD-OT"),
+        ("double_holiday", "DH-OT"),
+        ("double_holiday_rest", "DHRD-OT"),
+    ]
+
+    OVERTIME_MULTIPLIERS = {
+        "ordinary": 1.25,
+        "rest_day": 1.69,
+        "special_holiday": 1.69,
+        "special_holiday_rest": 1.95,
+        "regular_holiday": 2.60,
+        "regular_holiday_rest": 3.38,
+        "double_holiday": 3.90,
+        "double_holiday_rest": 5.07,
+    }
+
     employee = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     time_in = models.TimeField(null=True, blank=True)
     time_out = models.TimeField(null=True, blank=True)
     hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    overtime_type = models.CharField(max_length=30, choices=OVERTIME_TYPES, default="ordinary")
     reason = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=10,
         choices=[
             ("pending", "Pending"),
             ("approved", "Approved"),
-            ("rejected", "Rejected")
+            ("rejected", "Rejected"),
         ],
-        default="pending")
+        default="pending"
+    )
     reviewed_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -287,7 +311,14 @@ class Overtime(models.Model):
     )
 
     def __str__(self):
-        return f"{self.employee} - {self.date} ({self.status})"
+        return f"{self.employee} - {self.date} ({self.get_overtime_type_display()} - {self.status})"
+
+    def calculate_pay(self, hourly_rate: float) -> float:
+        """Calculate overtime pay given the employee's hourly rate."""
+        if not self.hours:
+            return 0.0
+        multiplier = self.OVERTIME_MULTIPLIERS.get(self.overtime_type, 1.25)
+        return float(self.hours) * hourly_rate * multiplier
 
 
 class ScheduleChangeRequest(models.Model):

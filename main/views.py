@@ -10,6 +10,7 @@ from users.forms import User
 from datetime import timedelta
 from calendar import monthrange
 from django.utils.timezone import localdate
+import holidays
 
 
 @login_required
@@ -29,6 +30,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     today = localdate()
     days_in_month = monthrange(today.year, today.month)[1]
 
+    # ✅ Get PH holidays for current and next year
+    ph_holidays = holidays.country_holidays("PH", years=[today.year, today.year + 1])
+
     # Dates with attendance or leave
     attended_dates = {log.date for log in attendance_logs}
     leave_dates = {
@@ -40,6 +44,17 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     # 🚀 Build schedule for each day in the current month
     for day in range(1, days_in_month + 1):
         current_date = today.replace(day=day)
+
+        # ✅ Check if it's a holiday
+        if current_date in ph_holidays:
+            events.append({
+                "title": ph_holidays.get(current_date),
+                "start": current_date.isoformat(),
+                "color": "purple",
+                "tooltip": ph_holidays.get(current_date),
+                "allDay": True
+            })
+            continue  # skip schedule/absent checks if it's a holiday
 
         # Day Off (Saturday & Sunday)
         if current_date.weekday() in [5, 6]:

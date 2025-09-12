@@ -40,6 +40,28 @@
             {% endfor %}
           </div>
 
+          <!-- Overtime Type Field -->
+          <div class="mb-3">
+            <label for="id_overtime_type" class="form-label fw-semibold">📌 Overtime Type</label>
+            <select name="overtime_type" id="id_overtime_type"
+                    class="form-select rounded-3 {% if form.overtime_type.errors %}is-invalid{% endif %}">
+              {% for value, label in form.fields.overtime_type.choices %}
+                <option value="{{ value }}"
+                  {% if form.overtime_type.value == value %}
+                    selected
+                  {% elif not form.overtime_type.value and value == 'ordinary' %}
+                    selected
+                  {% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+            {% for error in form.overtime_type.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+
           <!-- Reason Field -->
           <div class="mb-3">
             <label for="id_reason" class="form-label fw-semibold">📝 Reason</label>

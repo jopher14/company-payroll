@@ -123,18 +123,25 @@ class EmployeeUpdateForm(forms.ModelForm):
 class OvertimeForm(forms.ModelForm):
     class Meta:
         model = Overtime
-        fields = ["date", "hours", "reason"]
+        fields = ["date", "hours", "overtime_type", "reason"]  # added overtime_type
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "date": forms.DateInput(attrs={
+                "type": "date",
+                "class": "form-control",
+            }),
             "hours": forms.NumberInput(attrs={
                 "class": "form-control",
                 "step": "0.25",
-                "placeholder": "Enter total hours (e.g., 1.5, 2, 4.25)"
+                "placeholder": "Enter total hours (e.g., 1.5, 2, 4.25)",
+                "min": "0.25"
+            }),
+            "overtime_type": forms.Select(attrs={
+                "class": "form-select",
             }),
             "reason": forms.Textarea(attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Enter reason for overtime"
+                "placeholder": "Enter reason for overtime",
             }),
         }
 

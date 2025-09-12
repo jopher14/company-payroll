@@ -19,6 +19,8 @@
             </thead>
             <tbody>
                 <tr><td>Basic Rate (Full Salary)</td><td>{{ payslip.employee.salary|floatformat:2|intcomma }}</td></tr>
+                <tr><td>Daily Rate</td><td>{{ payslip.daily_rate|floatformat:2|intcomma }}</td></tr>
+                <tr><td>Hourly Rate</td><td>{{ payslip.hourly_rate|floatformat:2|intcomma }}</td></tr>
                 <tr><td>Basic Income (This Period)</td><td>{{ payslip.basic_salary|floatformat:2|intcomma }}</td></tr>
                 <tr><td>Allowances</td><td>{{ payslip.allowances|floatformat:2|intcomma }}</td></tr>
                 <tr class="table-light"><td><strong>Gross Income</strong></td><td><strong>{{ gross_salary|floatformat:2|intcomma }}</strong></td></tr>

@@ -488,7 +488,7 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
             overtime = form.save(commit=False)
             overtime.employee = user
 
-            # ✅ Calculate hours safely in backend
+            # ✅ Calculate hours safely in backend if time_in/out provided
             date = form.cleaned_data.get("date")
             time_in = form.cleaned_data.get("time_in")
             time_out = form.cleaned_data.get("time_out")
@@ -497,12 +497,15 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
                 start_dt = datetime.combine(date, time_in)
                 end_dt = datetime.combine(date, time_out)
 
-                # Handle overnight (if end time is earlier than start)
+                # Handle overnight shifts (e.g. 10PM → 2AM)
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
 
                 diff = end_dt - start_dt
                 overtime.hours = round(diff.total_seconds() / 3600, 2)  # store as decimal hours
+
+            # Overtime type comes directly from the form (default = ordinary)
+            overtime.overtime_type = form.cleaned_data.get("overtime_type", "ordinary")
 
             overtime.save()
             messages.success(request, "✅ Overtime request submitted successfully!")
