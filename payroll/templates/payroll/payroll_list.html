@@ -36,7 +36,7 @@
                         <td>{{ payroll.employee.get_full_name }}</td>
                         <td>{{ payroll.employee.get_role_display }}</td>
                         <td>{{ payroll.month }}/{{ payroll.year }}</td>
-                        <td>{{ payroll.period }}</td>
+                        <td>{{ payroll.get_period_display }}</td>
                         <td>
                             <a href="{% url 'payroll:view_payslip' payroll.id %}" class="btn btn-sm btn-primary">View Payslip</a>
                         </td>

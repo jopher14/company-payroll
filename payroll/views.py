@@ -63,13 +63,15 @@ def payroll_report(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def payroll_list(request):
-    user = request.user
+def payroll_list(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
 
     if user.role == "human_resources":
-        payrolls = Payroll.objects.all().select_related("employee")
+        # HR can view all payroll records
+        payrolls = Payroll.objects.select_related("employee").order_by("-year", "-month", "-period")
     else:
-        payrolls = Payroll.objects.filter(employee=user).select_related("employee")
+        # Regular employees only see their own
+        payrolls = Payroll.objects.filter(employee=user).select_related("employee").order_by("-year", "-month", "-period")
 
     context = {
         "payrolls": payrolls,
