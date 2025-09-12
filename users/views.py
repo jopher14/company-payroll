@@ -48,7 +48,7 @@ def loginView(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect("dashboard")  # change to your home/dashboard
+            return redirect("main:dashboard")
         else:
             messages.error(request, "Invalid credentials. Please try again.")
     else:

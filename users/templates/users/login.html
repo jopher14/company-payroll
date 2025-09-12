@@ -15,15 +15,13 @@
       <p class="text-muted small">Please sign in with your credentials</p>
     </div>
 
-    <!-- 🔴 Global Error Alerts (Invalid Credentials)
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %} -->
+    <!-- ✅ Global Non-field Errors (e.g. wrong login) -->
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ form.non_field_errors.0 }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endif %}
 
     <!-- Login Form -->
     <form method="post" id="loginForm" novalidate>
@@ -33,52 +31,60 @@
       <div class="form-floating mb-3">
         <input 
           type="text" 
-          class="form-control" 
+          class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
           name="username" 
           id="username" 
           placeholder="Username" 
-          value="{{ request.POST.username|default:'' }}" 
+          value="{{ form.username.value|default:'' }}" 
           required autofocus>
         <label for="username">Username</label>
         <div class="invalid-feedback">
-          This field is required.
+          {% if form.username.errors %}
+            {{ form.username.errors.0 }}
+          {% else %}
+            This field is required.
+          {% endif %}
         </div>
       </div>
 
-    <!-- Password -->
-    <div class="form-floating mb-3 position-relative">
-      <input 
-        type="password" 
-        class="form-control" 
-        name="password" 
-        id="password" 
-        placeholder="Password" 
-        required>
-      <label for="password">Password</label>
-      <span class="position-absolute top-50 end-0 translate-middle-y me-3" style="cursor:pointer;" onclick="togglePassword()">
-        <i class="bi bi-eye" id="togglePasswordIcon"></i>
-      </span>
-      <div class="invalid-feedback">
-        This field is required.
+      <!-- Password -->
+      <div class="form-floating mb-3 position-relative">
+        <input 
+          type="password" 
+          class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+          name="password" 
+          id="password" 
+          placeholder="Password" 
+          required>
+        <label for="password">Password</label>
+        <span class="position-absolute top-50 end-0 translate-middle-y me-3" style="cursor:pointer;" onclick="togglePassword()">
+          <i class="bi bi-eye" id="togglePasswordIcon"></i>
+        </span>
+        <div class="invalid-feedback">
+          {% if form.password.errors %}
+            {{ form.password.errors.0 }}
+          {% else %}
+            This field is required.
+          {% endif %}
+        </div>
       </div>
-    </div>
 
       <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">Login</button>
     </form>
 
     <!-- Footer -->
     <div class="mt-4 text-center">
-    {% if user.is_authenticated and user.role == "human_resources" %}
+      {% if user.is_authenticated and user.role == "human_resources" %}
         <small class="text-muted">
-        Want to add a new employee? 
-        <a href="{% url 'register' %}" class="text-decoration-none">Register</a>
+          Want to add a new employee? 
+          <a href="{% url 'register' %}" class="text-decoration-none">Register</a>
         </small>
-    {% endif %}
+      {% endif %}
     </div>
   </div>
 </div>
 
-<!-- Password Toggle Script -->
+<!-- Password Toggle -->
 <script>
 function togglePassword() {
   const passwordField = document.getElementById("password");
@@ -91,36 +97,5 @@ function togglePassword() {
     icon.classList.replace("bi-eye-slash", "bi-eye");
   }
 }
-
-// ✅ Frontend Validation
-document.getElementById("loginForm").addEventListener("submit", function(event) {
-  let isValid = true;
-
-  const employeeId = document.getElementById("employee_id");
-  const username = document.getElementById("username");
-  const password = document.getElementById("password");
-
-  [employeeId, username, password].forEach(input => {
-    input.classList.remove("is-invalid");
-  });
-
-  if (!employeeId.value.trim()) {
-    employeeId.classList.add("is-invalid");
-    isValid = false;
-  }
-  if (!username.value.trim()) {
-    username.classList.add("is-invalid");
-    isValid = false;
-  }
-  if (!password.value.trim()) {
-    password.classList.add("is-invalid");
-    isValid = false;
-  }
-
-  if (!isValid) {
-    event.preventDefault();
-  }
-});
 </script>
-
 {% endblock content %}
