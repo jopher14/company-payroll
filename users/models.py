@@ -309,6 +309,7 @@ class Overtime(models.Model):
         blank=True,
         related_name="reviewed_overtime"
     )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.employee} - {self.date} ({self.get_overtime_type_display()} - {self.status})"
@@ -319,6 +320,12 @@ class Overtime(models.Model):
             return 0.0
         multiplier = self.OVERTIME_MULTIPLIERS.get(self.overtime_type, 1.25)
         return float(self.hours) * hourly_rate * multiplier
+
+    def save(self, *args, **kwargs):
+        # Automatically set reviewed_at when status changes from pending
+        if self.status in ["approved", "rejected"] and self.reviewed_at is None:
+            self.reviewed_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class ScheduleChangeRequest(models.Model):

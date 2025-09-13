@@ -29,6 +29,44 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- History Section -->
+  <h3 class="mt-5">Overtime Request History</h3>
+  <table class="table table-bordered">
+    <thead class="table-secondary">
+      <tr>
+        <th>Employee</th>
+        <th>Date</th>
+        <th>Hours</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Reviewed On</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ot in history_overtimes %}
+      <tr>
+        <td>{{ ot.employee.get_full_name|default:ot.employee.username }}</td>
+        <td>{{ ot.date|date:"M d, Y" }}</td>
+        <td>{{ ot.hours }}</td>
+        <td>{{ ot.reason|default:"—" }}</td>
+        <td>
+          {% if ot.status == "Approved" %}
+            <span class="badge bg-success">Approved</span>
+          {% elif ot.status == "Rejected" %}
+            <span class="badge bg-danger">Rejected</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ ot.status }}</span>
+          {% endif %}
+        </td>
+        <td>{{ ot.reviewed_at|date:"M d, Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center">No overtime request history.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>
 </div>
 {% endblock %}

@@ -145,16 +145,16 @@ def pending_leaves(request: HttpRequest) -> HttpResponse:
     if user.role == "manager":
         # Manager sees supervisor + employee requests
         leaves = Leave.objects.filter(
-            employee__role__in=["supervisor", "employee"], status="pending"
+            employee__role__in=["supervisor", "employee"], status="Pending"
         )
     elif user.role == "supervisor":
         # Supervisor sees employee requests
         leaves = Leave.objects.filter(
-            employee__role="employee", status="pending"
+            employee__role="employee", status="Pending"
         )
     else:
         # Employees only see their own leave requests
-        leaves = Leave.objects.filter(employee=user)
+        leaves = Leave.objects.filter(employee=user, status="Pending")
 
     return render(request, "leave/pending_leaves.html", {"leaves": leaves})
 
@@ -622,17 +622,27 @@ def overtime_action(request: HttpRequest, pk, action) -> HttpResponse:
 def pending_overtimes(request: HttpRequest) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # Should never happen due to @login_required
         return HttpResponse("Invalid user", status=400)
 
     if user.role != "supervisor":
         return redirect("main:dashboard")
 
-    pending_overtimes = Overtime.objects.filter(status="pending")
+    # Separate pending and history
+    pending_overtimes = Overtime.objects.filter(
+        employee__role="employee",
+        status="pending"
+    )
+    history_overtimes = Overtime.objects.filter(
+        employee__role="employee"
+    ).exclude(status="pending")
+
     return render(
         request,
         "overtime/pending_overtime.html",
-        {"pending_overtimes": pending_overtimes}
+        {
+            "pending_overtimes": pending_overtimes,
+            "history_overtimes": history_overtimes,
+        }
     )
 
 
@@ -685,10 +695,9 @@ def request_schedule_change(request: HttpRequest) -> HttpResponse:
             date_obj = form.cleaned_data["date"]
             day_number = date_obj.isoweekday()
 
-            # 1️⃣ Check if there's a date-specific schedule
+            # 1️⃣ Check for a date-specific schedule
             date_schedule = EmployeeSchedule.objects.filter(employee=user, date=date_obj).first()
             if date_schedule:
-                # Do not assign to schedule ForeignKey
                 change_request.requested_time_in = date_schedule.time_in
                 change_request.requested_time_out = date_schedule.time_out
             else:
@@ -700,13 +709,42 @@ def request_schedule_change(request: HttpRequest) -> HttpResponse:
                     change_request.requested_time_out = recurring_schedule.time_out
 
             change_request.save()
-            return redirect("users:pending_schedule_changes")
+            return redirect("users:request_schedule_change")
         else:
-            print(form.errors)  # Debug why form is invalid
+            print(form.errors)
     else:
         form = ScheduleChangeRequestForm(employee=user)
 
-    return render(request, "attendance/request_schedule_change.html", {"form": form})
+    # ✅ Fetch pending requests and history based on role
+    if user.role == "manager":
+        # Manager sees own + all supervisor requests
+        pending_requests = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["supervisor", "manager"]
+        ).order_by("-created_at")
+        history = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["supervisor", "manager"],
+            status__in=["approved", "rejected"]
+        ).order_by("-created_at")
+    elif user.role == "supervisor":
+        # Supervisor sees own + all employee requests
+        pending_requests = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["employee", "supervisor"]
+        ).order_by("-created_at")
+        history = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["employee", "supervisor"],
+            status__in=["approved", "rejected"]
+        ).order_by("-created_at")
+    else:
+        # Employee sees only their own requests
+        pending_requests = ScheduleChangeRequest.objects.filter(employee=user).order_by("-created_at")
+        history = ScheduleChangeRequest.objects.filter(employee=user, status__in=["approved", "rejected"]).order_by("-created_at")
+
+    context = {
+        "form": form,
+        "pending_requests": pending_requests,
+        "history": history,
+    }
+    return render(request, "attendance/request_schedule_change.html", context)
 
 
 @login_required

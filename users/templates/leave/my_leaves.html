@@ -1,10 +1,11 @@
 {% extends "main/base.html" %}
 {% block content %}
 <div class="container mt-5">
-  <h3>My Leave Requests</h3>
+  <h3 class="mb-3">My Leave Requests</h3>
 
-  <!-- Leave Table -->
-  <table class="table table-bordered">
+  <!-- Pending Requests -->
+  <h5>Pending Requests</h5>
+  <table class="table table-bordered table-striped">
     <thead class="table-dark">
       <tr>
         <th>Start</th>
@@ -16,41 +17,67 @@
     </thead>
     <tbody>
       {% for leave in leaves %}
-      <tr>
-        <td>{{ leave.start_date }}</td>
-        <td>{{ leave.end_date }}</td>
-        <td>{{ leave.reason }}</td>
-        <td>
-          {% if leave.status == "Approved" %}
-            <span class="badge bg-success">Approved</span>
-          {% elif leave.status == "Rejected" %}
-            <span class="badge bg-danger">Rejected</span>
-          {% else %}
-            <span class="badge bg-warning text-dark">Pending</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if leave.status == "Pending" %}
+        {% if leave.status == "Pending" %}
+        <tr>
+          <td>{{ leave.start_date|date:"M d, Y" }}</td>
+          <td>{{ leave.end_date|date:"M d, Y" }}</td>
+          <td>{{ leave.reason|default:"—" }}</td>
+          <td><span class="badge bg-warning text-dark">Pending</span></td>
+          <td>
             <a href="{% url 'users:edit_leave' leave.id %}" class="btn btn-sm btn-primary">Edit</a>
             <a href="{% url 'users:delete_leave' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
-          {% elif leave.status == "Approved" %}
-            {% if leave.reviewed_by %}
-              <small><strong>Approved by:</strong> {{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}</small>
-            {% endif %}
-          {% elif leave.status == "Rejected" %}
-            {% if leave.reviewed_by %}
-              <small><strong>Rejected by:</strong> {{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}</small>
-            {% endif %}
-          {% else %}
-            <span class="badge bg-warning text-dark">Pending</span>
-          {% endif %}
-        </td>
-      </tr>
+          </td>
+        </tr>
+        {% endif %}
       {% empty %}
-      <tr><td colspan="5" class="text-center">No leave requests found.</td></tr>
+      <tr><td colspan="5" class="text-center">No pending leave requests.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- Leave History -->
+  <h5 class="mt-5">Leave History</h5>
+  <table class="table table-bordered table-striped">
+    <thead class="table-secondary">
+      <tr>
+        <th>Start</th>
+        <th>End</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Reviewed By</th>
+        <th>Reviewed On</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for leave in leaves %}
+        {% if leave.status != "Pending" %}
+        <tr>
+          <td>{{ leave.start_date|date:"M d, Y" }}</td>
+          <td>{{ leave.end_date|date:"M d, Y" }}</td>
+          <td>{{ leave.reason|default:"—" }}</td>
+          <td>
+            {% if leave.status == "Approved" %}
+              <span class="badge bg-success">Approved</span>
+            {% elif leave.status == "Rejected" %}
+              <span class="badge bg-danger">Rejected</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if leave.reviewed_by %}
+              {{ leave.reviewed_by.get_full_name|default:leave.reviewed_by.username }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ leave.reviewed_at|date:"M d, Y H:i"|default:"—" }}</td>
+        </tr>
+        {% endif %}
+      {% empty %}
+      <tr><td colspan="6" class="text-center">No leave history found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <a href="{% url 'users:file_leave' %}" class="btn btn-success mb-3">+ File Leave</a>
   <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>
 </div>
