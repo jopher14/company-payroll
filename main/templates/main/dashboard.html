@@ -49,32 +49,48 @@
                 🕒 Time In / Out
               </a>
 
-              <!-- Leave Requests -->
-              <a href="{% url 'users:pending_leaves' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                📑 Check Leave Requests
-                {% if pending_leaves_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_leaves_count }}</span>
-                {% endif %}
-              </a>
-
-              <!-- Overtime Requests -->
-              <a href="{% url 'users:pending_overtimes' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                ⏰ Check Overtime Requests
-                {% if pending_overtimes_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
-                {% endif %}
-              </a>
-
-              <!-- Schedule Changes -->
-              <a href="{% url 'users:pending_schedule_changes' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                📋 Approve Schedule Changes
-                {% if pending_schedule_changes_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
-                {% endif %}
-              </a>
+              <!-- Approvals -->
+              <div class="dropdown w-100 mb-2">
+                <button 
+                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
+                  type="button" 
+                  id="approvalsMenu" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false">
+                  ✅ Approvals
+                  {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
+                    {% if total_pending > 0 %}
+                      <span class="badge bg-danger">{{ total_pending }}</span>
+                    {% endif %}
+                  {% endwith %}
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="approvalsMenu">
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                      📑 Leave Requests
+                      {% if pending_leaves_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_leaves_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_overtimes' %}">
+                      ⏰ Overtime Requests
+                      {% if pending_overtimes_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                      📋 Schedule Changes
+                      {% if pending_schedule_changes_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                </ul>
+              </div>
 
               <!-- Payroll -->
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
@@ -90,42 +106,71 @@
               </a>
 
               <!-- File Requests -->
-              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">
-                📝 File a Leave
-              </a>
-              <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">
-                ⏱ File Overtime
-              </a>
+              <div class="dropdown w-100 mb-2">
+                <button 
+                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
+                  type="button" 
+                  id="fileRequestsMenu" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false">
+                  📝 File Requests
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="fileRequestsMenu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'users:my_leaves' %}">
+                      📑 File a Leave
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'users:overtime_list' %}">
+                      ⏱ File Overtime
+                    </a>
+                  </li>
+                </ul>
+              </div>
 
               <!-- Approvals -->
-              <a href="{% url 'users:pending_leaves' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                📑 Check Leave Requests
-                {% if pending_leaves_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_leaves_count }}</span>
-                {% endif %}
-              </a>
-
-              <a href="{% url 'users:pending_overtimes' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                ⏰ Check Overtime Requests
-                {% if pending_overtimes_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
-                {% endif %}
-              </a>
-
-              <a href="{% url 'users:pending_schedule_changes' %}" 
-                class="btn btn-outline-dark d-flex justify-content-between align-items-center">
-                📋 Check Schedule Changes
-                {% if pending_schedule_changes_count > 0 %}
-                  <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
-                {% endif %}
-              </a>
-
-              <!-- Own Schedule -->
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">
-                🗓 Change Schedule
-              </a>
+              <div class="dropdown w-100 mb-2">
+                <button 
+                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
+                  type="button" 
+                  id="approvalsMenu" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false">
+                  ✅ Approvals
+                  {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
+                    {% if total_pending > 0 %}
+                      <span class="badge bg-danger">{{ total_pending }}</span>
+                    {% endif %}
+                  {% endwith %}
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="approvalsMenu">
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                      📑 Leave Requests
+                      {% if pending_leaves_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_leaves_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_overtimes' %}">
+                      ⏰ Overtime Requests
+                      {% if pending_overtimes_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                      📋 Schedule Changes
+                      {% if pending_schedule_changes_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                </ul>
+              </div>
 
               <!-- Payroll -->
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
