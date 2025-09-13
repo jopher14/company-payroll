@@ -113,7 +113,7 @@ def my_leaves(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def edit_leave(request: HttpRequest, pk) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="Pending")
+    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="pending")
     if request.method == "POST":
         form = LeaveForm(request.POST, instance=leave)
         if form.is_valid():
@@ -126,7 +126,7 @@ def edit_leave(request: HttpRequest, pk) -> HttpResponse:
 
 @login_required
 def delete_leave(request: HttpRequest, pk) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="Pending")
+    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="pending")
     if request.method == "POST":
         leave.delete()
         return redirect("my_leaves")
@@ -145,12 +145,12 @@ def pending_leaves(request: HttpRequest) -> HttpResponse:
     if user.role == "manager":
         # Manager sees supervisor + employee requests
         leaves = Leave.objects.filter(
-            employee__role__in=["supervisor", "employee"], status="Pending"
+            employee__role__in=["supervisor", "employee"], status="pending"
         )
     elif user.role == "supervisor":
         # Supervisor sees employee requests
         leaves = Leave.objects.filter(
-            employee__role="employee", status="Pending"
+            employee__role="employee", status="pending"
         )
     else:
         # Employees only see their own leave requests

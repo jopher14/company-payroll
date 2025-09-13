@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpRequest, HttpResponse
 from .forms import AnnouncementForm
 from .models import Announcement
-from users.models import Attendance, Leave, Schedule, EmployeeSchedule, ScheduleChangeRequest
+from users.models import Attendance, Leave, Schedule, EmployeeSchedule, ScheduleChangeRequest, Overtime
 from users.forms import User
 from datetime import timedelta
 from calendar import monthrange
@@ -17,12 +17,14 @@ import holidays
 def dashboard(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
-    # Fetch data
+    # Fetch data for employee
     attendance_logs = Attendance.objects.filter(employee=user)
     leaves = Leave.objects.filter(employee=user, status=Leave.APPROVED)
     schedules = Schedule.objects.filter(employee=user)  # recurring weekly schedules
     date_schedules = EmployeeSchedule.objects.filter(employee=user)  # date-specific schedules
-    change_requests = ScheduleChangeRequest.objects.filter(employee=user, status__in=["pending", "approved"])
+    change_requests = ScheduleChangeRequest.objects.filter(
+        employee=user, status__in=["pending", "approved"]
+    )
     approved_change_requests = {req.date: req for req in change_requests.filter(status="approved")}
 
     events: list[dict[str, Any]] = []
@@ -45,7 +47,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     for day in range(1, days_in_month + 1):
         current_date = today.replace(day=day)
 
-        # ✅ Check if it's a holiday
+        # ✅ Holiday
         if current_date in ph_holidays:
             events.append({
                 "title": ph_holidays.get(current_date),
@@ -54,9 +56,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "tooltip": ph_holidays.get(current_date),
                 "allDay": True
             })
-            continue  # skip schedule/absent checks if it's a holiday
+            continue
 
-        # Day Off (Saturday & Sunday)
+        # ✅ Day Off
         if current_date.weekday() in [5, 6]:
             events.append({
                 "title": "Day Off",
@@ -67,7 +69,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             })
             continue
 
-        # ✅ Approved schedule change (Green)
+        # ✅ Approved schedule change
         if current_date in approved_change_requests:
             req = approved_change_requests[current_date]
             events.append({
@@ -79,8 +81,8 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             })
             continue
 
-        # ✅ Otherwise: show recurring HR default schedule in grey
-        day_number = current_date.isoweekday() % 7 + 1  # Mon=2, Tue=3, ..., Sun=1
+        # ✅ Default recurring schedule
+        day_number = current_date.isoweekday() % 7 + 1
         recurring_for_day = schedules.filter(days_of_week__number=day_number)
         for sched in recurring_for_day:
             events.append({
@@ -91,7 +93,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "allDay": True
             })
 
-        # ✅ Date-specific schedule from HR (Grey)
+        # ✅ Date-specific schedule
         specific_schedule = date_schedules.filter(date=current_date).first()
         if specific_schedule:
             events.append({
@@ -103,7 +105,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             })
             continue
 
-        # Mark Absent if no attendance/leave (only for past & today)
+        # ✅ Mark Absent (only past or today)
         if current_date <= today:
             if recurring_for_day and current_date not in attended_dates and current_date not in leave_dates:
                 events.append({
@@ -113,7 +115,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                     "tooltip": "Absent"
                 })
 
-    # ✅ Attendance overrides (Green/Orange)
+    # ✅ Attendance overrides
     for log in attendance_logs:
         if log.time_in and log.time_out:
             events.append({
@@ -135,7 +137,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         days = (leave.end_date - leave.start_date).days + 1
         for n in range(days):
             current_date = leave.start_date + timedelta(days=n)
-
             if leave.leave_type == Leave.HALF_DAY:
                 title, color = "Half-Day Leave", "orange"
             else:
@@ -149,10 +150,23 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "allDay": True,
             })
 
+    # ✅ Pending requests count (default = 0 for all users)
+    pending_leaves_count = 0
+    pending_overtimes_count = 0
+    pending_schedule_changes_count = 0
+
+    if user.role in ["manager", "supervisor"]:
+        pending_leaves_count = Leave.objects.filter(status="Pending").count()  # check the capitalize
+        pending_overtimes_count = Overtime.objects.filter(status="pending").count()
+        pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").count()
+
     context = {
         "user": user,
         "attendance_events": json.dumps(events),
         "announcement": Announcement.objects.all().order_by("-created_at")[:5],
+        "pending_leaves_count": pending_leaves_count,
+        "pending_overtimes_count": pending_overtimes_count,
+        "pending_schedule_changes_count": pending_schedule_changes_count,
     }
 
     return render(request, "main/dashboard.html", context)
