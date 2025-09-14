@@ -1,0 +1,76 @@
+{% extends "main/base.html" %}
+
+{% block title %}My Overtime Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Pending Overtime Requests -->
+    <h3>⏱ My Pending Overtime Requests</h3>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>Hours</th>
+                <th>Overtime Type</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if pending_overtime %}
+                {% for overtime in pending_overtime %}
+                    <tr>
+                        <td>{{ overtime.date }}</td>
+                        <td>{{ overtime.hours }}</td>
+                        <td>{{ overtime.overtime_type }}</td>
+                        <td>{{ overtime.reason }}</td>
+                        <td>{{ overtime.status|capfirst }}</td>
+                        <td>
+                            <a href="{% url 'users:overtime_edit' overtime.pk %}" class="btn btn-primary btn-sm">Edit</a>
+                            <a href="{% url 'users:overtime_delete' overtime.pk %}" class="btn btn-danger btn-sm"
+                               onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No pending overtime requests.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- Overtime History -->
+    <h3 class="mt-5">📜 Overtime History</h3>
+    <table class="table table-bordered">
+        <thead class="table-info">
+            <tr>
+                <th>Date</th>
+                <th>Hours</th>
+                <th>Overtime Type</th>
+                <th>Reason</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if history_overtime %}
+                {% for overtime in history_overtime %}
+                    <tr>
+                        <td>{{ overtime.date }}</td>
+                        <td>{{ overtime.hours }}</td>
+                        <td>{{ overtime.overtime_type }}</td>
+                        <td>{{ overtime.reason }}</td>
+                        <td>{{ overtime.status|capfirst }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">No overtime history.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

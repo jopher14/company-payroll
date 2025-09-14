@@ -12,7 +12,6 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils.timezone import now, localtime
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.utils.timezone import localdate
 
 
@@ -454,10 +453,16 @@ def overtime_list(request: HttpRequest) -> HttpResponse:
         history_overtime = Overtime.objects.filter(employee=user).exclude(status="pending").order_by("-date")
 
     elif user.role == "supervisor":
-        # Supervisor sees pending requests of their team (optional)
-        # and only their reviewed requests in history
-        overtime = Overtime.objects.filter(status="pending").order_by("-date")  # all pending
-        history_overtime = Overtime.objects.filter(reviewed_by=user).exclude(status="pending").order_by("-date")
+        # Supervisor sees pending requests from their team (employees)
+        overtime = Overtime.objects.filter(employee__role="employee", status="pending").order_by("-date")
+        # History shows only supervisor's own reviewed requests
+        history_overtime = Overtime.objects.filter(employee=user).exclude(status="pending").order_by("-date")
+
+    elif user.role == "manager":
+        # Manager sees pending requests from both employees and supervisors
+        overtime = Overtime.objects.filter(employee__role__in=["employee", "supervisor"], status="pending").order_by("-date")
+        # History shows approved/rejected requests from employees and supervisors
+        history_overtime = Overtime.objects.filter(employee__role__in=["employee", "supervisor"]).exclude(status="pending").order_by("-date")
 
     else:
         messages.error(request, "You are not allowed to view overtime requests.")
@@ -514,6 +519,28 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
         form = OvertimeForm()
 
     return render(request, "overtime/overtime_request.html", {"form": form})
+
+
+@login_required
+def my_pending_overtime(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
+
+    # Only allow supervisors
+    if user.role != "supervisor":
+        return HttpResponse("Unauthorized", status=403)
+
+    # Pending requests
+    pending_overtime = Overtime.objects.filter(employee=user, status="pending").order_by("-date")
+
+    # History (approved or rejected)
+    history_overtime = Overtime.objects.filter(employee=user).exclude(status="pending").order_by("-date")
+
+    context = {
+        "pending_overtime": pending_overtime,
+        "history_overtime": history_overtime,
+    }
+
+    return render(request, "overtime/my_pending_overtime.html", context)
 
 
 @login_required
@@ -647,37 +674,37 @@ def pending_overtimes(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def overtime_edit(request: HttpRequest, pk) -> HttpResponse:
-    overtime = get_object_or_404(Overtime, pk=pk, employee=request.user)
+def overtime_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    overtime = get_object_or_404(Overtime, pk=pk)
+    user = cast(User, request.user)
 
-    if overtime.status != "pending":
-        messages.error(request, "You can only edit pending requests.")
-        return redirect("users:overtime_list")
+    # Only allow supervisor who owns the request and only if it's pending
+    if user.role != "supervisor" or overtime.employee != request.user or overtime.status != "pending":
+        return HttpResponse("Unauthorized", status=403)
 
     if request.method == "POST":
         form = OvertimeForm(request.POST, instance=overtime)
         if form.is_valid():
             form.save()
-            messages.success(request, "Overtime request updated successfully.")
-            return redirect("users:overtime_list")
+            return redirect("my_pending_overtime")
     else:
         form = OvertimeForm(instance=overtime)
 
-    return render(request, "overtime/overtime_request.html", {"form": form})
+    return render(request, "overtime/overtime_edit.html", {"form": form})
 
 
 @login_required
-def overtime_delete(request: HttpRequest, pk) -> HttpResponse:
-    overtime = get_object_or_404(Overtime, pk=pk, employee=request.user)
+def overtime_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    overtime = get_object_or_404(Overtime, pk=pk)
+    user = cast(User, request.user)
 
-    if overtime.status != "pending":
-        messages.error(request, "You can only delete pending requests.")
-        return redirect("users:overtime_list")
+    # Only allow supervisor who owns the request and only if it's pending
+    if user.role != "supervisor" or overtime.employee != request.user or overtime.status != "pending":
+        return HttpResponse("Unauthorized", status=403)
 
     if request.method == "POST":
         overtime.delete()
-        messages.success(request, "Overtime request deleted successfully.")
-        return redirect("users:overtime_list")
+        return redirect("my_pending_overtime")
 
     return render(request, "overtime/overtime_confirm_delete.html", {"overtime": overtime})
 
@@ -769,41 +796,58 @@ def get_schedule_for_date(request: HttpRequest) -> HttpResponse:
 @login_required
 def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
-    mode = request.GET.get("mode", "approval")  # Default to approval mode
 
-    # Determine pending requests based on mode
-    if mode == "my_requests":
-        # Supervisor sees only their own pending requests
+    # Pending requests
+    if user.role == "employee":
+        # Employees see only their own pending requests
         approval_requests = ScheduleChangeRequest.objects.filter(employee=user, status="pending")
-    else:  # approval mode
-        if user.role == "supervisor":
-            approval_requests = ScheduleChangeRequest.objects.filter(employee__role="employee", status="pending")
-        elif user.role == "manager":
-            approval_requests = ScheduleChangeRequest.objects.filter(employee__role="supervisor", status="pending")
-        else:
-            approval_requests = ScheduleChangeRequest.objects.none()
-
-    # History of approved/rejected requests
-    if user.role == "supervisor":
-        history = ScheduleChangeRequest.objects.filter(
-            Q(employee__role="employee") | Q(employee=user),
-            status__in=["approved", "rejected"]
-        )
+    elif user.role == "supervisor":
+        # Supervisors see pending requests from employees
+        approval_requests = ScheduleChangeRequest.objects.filter(employee__role="employee", status="pending")
     elif user.role == "manager":
-        history = ScheduleChangeRequest.objects.filter(
-            Q(employee__role="supervisor") | Q(employee=user),
-            status__in=["approved", "rejected"]
+        # Managers see pending requests from both supervisors and employees
+        approval_requests = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["employee", "supervisor"],
+            status="pending"
         )
     else:
-        history = ScheduleChangeRequest.objects.filter(employee=user, status__in=["approved", "rejected"])
+        approval_requests = ScheduleChangeRequest.objects.none()
+
+    # History of approved/rejected requests
+    if user.role in ["employee", "supervisor"]:
+        # Employee and supervisor see only their own history
+        history = ScheduleChangeRequest.objects.filter(
+            employee=user,
+            status__in=["approved", "rejected"]
+        ).order_by('-created_at')
+    elif user.role == "manager":
+        # Manager sees history of both employees and supervisors
+        history = ScheduleChangeRequest.objects.filter(
+            employee__role__in=["employee", "supervisor"],
+            status__in=["approved", "rejected"]
+        ).order_by('-created_at')
+    else:
+        history = ScheduleChangeRequest.objects.none()
 
     context = {
         "user": user,
-        "mode": mode,
         "approval_requests": approval_requests,
         "history": history,
     }
     return render(request, "attendance/pending_schedule_changes.html", context)
+
+
+@login_required
+def my_pending_schedule_change(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)
+
+    # Get only the pending schedule change requests of the logged-in user
+    pending_requests = ScheduleChangeRequest.objects.filter(employee=user, status='pending').order_by('-created_at')
+
+    context = {
+        'pending_requests': pending_requests,
+    }
+    return render(request, 'attendance/my_pending_schedule_change.html', context)
 
 
 @login_required

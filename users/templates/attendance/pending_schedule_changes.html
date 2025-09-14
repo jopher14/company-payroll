@@ -7,15 +7,17 @@
 <!-- Header with Button -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="mb-0">📋 Pending Schedule Change Requests</h3>
-  <!-- Supervisor goes into "my_requests" mode when filing -->
-  <a href="{% url 'users:pending_schedule_changes' %}?mode=my_requests" class="btn btn-success">
+  
+  {% if user.role == 'employee' %}
+  <a href="{% url 'users:request_schedule_change' %}" class="btn btn-success">
     🗓 Request Schedule Change
   </a>
+  {% endif %}
 </div>
 
 <!-- ✅ First Table (dynamic depending on mode) -->
 <h5>
-  {% if mode == "my_requests" %}
+  {% if user.role == 'employee' %}
     🙋 My Pending Schedule Change Requests
   {% else %}
     📝 Requests Awaiting Your Approval
@@ -23,55 +25,51 @@
 </h5>
 
 <table class="table table-bordered mt-3">
-  <thead class="table-dark">
-    <tr>
-      {% if mode == "approval" %}
-        <th>Employee</th>
-      {% endif %}
-      <th>Date</th>
-      <th>New Time In</th>
-      <th>New Time Out</th>
-      <th>Reason</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% if approval_requests %}
-      {% for req in approval_requests %}
-      <tr {% if mode == "approval" and req.employee.role == "employee" %}class="table-warning"{% endif %}>
-        {% if mode == "approval" %}
-          <td>{{ req.employee.get_full_name|default_if_none:req.employee.username }}</td>
+    <thead class="table-dark">
+        <tr>
+            {% if user.role in 'supervisor manager' %}
+            <th>Employee</th>
+            {% endif %}
+            <th>Date</th>
+            <th>New Time In</th>
+            <th>New Time Out</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if approval_requests %}
+            {% for req in approval_requests %}
+            <tr>
+                {% if user.role in 'supervisor manager' %}
+                <td>{{ req.employee.get_full_name|default_if_none:req.employee.username }}</td>
+                {% endif %}
+                <td>{{ req.date }}</td>
+                <td>{{ req.requested_time_in }}</td>
+                <td>{{ req.requested_time_out }}</td>
+                <td>{{ req.reason }}</td>
+                <td><span class="badge bg-warning text-dark">Pending</span></td>
+                <td>
+                    {% if user.role == 'employee' %}
+                        <a href="{% url 'users:edit_schedule_change' req.pk %}" class="btn btn-primary btn-sm">Edit</a>
+                        <a href="{% url 'users:delete_schedule_change' req.pk %}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
+                    {% elif user.role in 'supervisor manager' %}
+                        <a href="{% url 'users:approve_schedule_change' req.pk %}" class="btn btn-success btn-sm">Approve</a>
+                        <a href="{% url 'users:reject_schedule_change' req.pk %}" class="btn btn-danger btn-sm">Reject</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="{% if user.role in 'supervisor manager' %}7{% else %}6{% endif %}" class="text-center text-muted">
+                    You have no pending schedule change requests.
+                </td>
+            </tr>
         {% endif %}
-        <td>{{ req.date }}</td>
-        <td>{{ req.requested_time_in }}</td>
-        <td>{{ req.requested_time_out }}</td>
-        <td>{{ req.reason }}</td>
-        <td><span class="badge bg-warning text-dark">Pending</span></td>
-        <td>
-          {% if mode == "approval" %}
-            <a href="{% url 'users:approve_schedule_change' req.pk %}" class="btn btn-success btn-sm">Approve</a>
-            <a href="{% url 'users:reject_schedule_change' req.pk %}" class="btn btn-danger btn-sm">Reject</a>
-          {% else %}
-            <a href="{% url 'users:edit_schedule_change' req.pk %}" class="btn btn-primary btn-sm">Edit</a>
-            <a href="{% url 'users:delete_schedule_change' req.pk %}" class="btn btn-danger btn-sm"
-               onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    {% else %}
-      <tr>
-        <td colspan="{% if mode == 'approval' %}7{% else %}6{% endif %}" class="text-center text-muted">
-          {% if mode == "my_requests" %}
-            You don’t have any schedule change requests yet.
-          {% else %}
-            No employee requests awaiting your approval.
-          {% endif %}
-        </td>
-      </tr>
-    {% endif %}
-  </tbody>
+    </tbody>
 </table>
 
 

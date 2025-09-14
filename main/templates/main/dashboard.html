@@ -74,7 +74,7 @@
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_overtimes' %}">
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
                       ⏰ Overtime Requests
                       {% if pending_overtimes_count > 0 %}
                         <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
@@ -122,12 +122,12 @@
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="{% url 'users:overtime_list' %}">
+                    <a class="dropdown-item" href="{% url 'users:my_pending_overtime' %}">
                       ⏱ File Overtime
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="{% url 'users:pending_schedule_changes' %}?mode=my_requests">
+                    <a class="dropdown-item" href="{% url 'users:my_pending_schedule_change' %}">
                         🗓 File Change Schedule
                     </a>
                   </li>
@@ -167,7 +167,7 @@
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}?mode=approval">
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
                       📋 Schedule Changes
                       {% if pending_schedule_changes_count > 0 %}
                         <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>

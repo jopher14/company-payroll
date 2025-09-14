@@ -35,6 +35,7 @@ urlpatterns = [
     path(route='attendance/', view=views.attendance_list, name='attendance_list'),
     path(route="request-schedule-change/", view=views.request_schedule_change, name="request_schedule_change"),
     path(route="pending-schedule-changes/", view=views.pending_schedule_changes, name="pending_schedule_changes"),
+    path(route='my-pending-schedule-changes/', view=views.my_pending_schedule_change, name='my_pending_schedule_change'),
     path(route="edit-schedule-change/<int:pk>/", view=views.edit_schedule_change, name="edit_schedule_change"),
     path(route="delete-schedule-change/<int:pk>/", view=views.delete_schedule_change, name="delete_schedule_change"),
     path(route='approve-schedule-change/<int:pk>/', view=views.approve_schedule_change, name='approve_schedule_change'),
@@ -50,4 +51,5 @@ urlpatterns = [
     path(route="overtimes/<int:pk>/delete/", view=views.overtime_delete, name="overtime_delete"),
     path(route="overtimes/<int:pk>/<str:action>/", view=views.overtime_action, name="overtime_action"),
     path(route="overtime/pending/", view=views.pending_overtimes, name="pending_overtimes"),
+    path(route="overtime/my_pending/", view=views.my_pending_overtime, name="my_pending_overtime"),
 ]
