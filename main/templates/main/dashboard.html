@@ -126,6 +126,11 @@
                       ⏱ File Overtime
                     </a>
                   </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'users:pending_schedule_changes' %}?mode=my_requests">
+                        🗓 File Change Schedule
+                    </a>
+                  </li>
                 </ul>
               </div>
 
@@ -162,7 +167,7 @@
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}?mode=approval">
                       📋 Schedule Changes
                       {% if pending_schedule_changes_count > 0 %}
                         <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>

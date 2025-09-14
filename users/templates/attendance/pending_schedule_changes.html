@@ -4,75 +4,76 @@
 {% block content %}
 <div class="container mt-4">
 
-  <!-- Header with Button -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">📋 Pending Schedule Change Requests</h3>
-    <div>
-      <a href="{% url 'users:request_schedule_change' %}" class="btn btn-success">🗓 Request Schedule Change</a>
-    </div>
-  </div>
+<!-- Header with Button -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">📋 Pending Schedule Change Requests</h3>
+  <!-- Supervisor goes into "my_requests" mode when filing -->
+  <a href="{% url 'users:pending_schedule_changes' %}?mode=my_requests" class="btn btn-success">
+    🗓 Request Schedule Change
+  </a>
+</div>
 
-  <!-- ✅ Pending Requests -->
-  <table class="table table-bordered mt-3">
-    <thead class="table-dark">
-      <tr>
+<!-- ✅ First Table (dynamic depending on mode) -->
+<h5>
+  {% if mode == "my_requests" %}
+    🙋 My Pending Schedule Change Requests
+  {% else %}
+    📝 Requests Awaiting Your Approval
+  {% endif %}
+</h5>
+
+<table class="table table-bordered mt-3">
+  <thead class="table-dark">
+    <tr>
+      {% if mode == "approval" %}
         <th>Employee</th>
-        <th>Date</th>
-        <th>New Time In</th>
-        <th>New Time Out</th>
-        <th>Reason</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for req in requests %}
-      <tr>
-        <td>{{ req.employee.get_full_name|default:req.employee.username }}</td>
+      {% endif %}
+      <th>Date</th>
+      <th>New Time In</th>
+      <th>New Time Out</th>
+      <th>Reason</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if approval_requests %}
+      {% for req in approval_requests %}
+      <tr {% if mode == "approval" and req.employee.role == "employee" %}class="table-warning"{% endif %}>
+        {% if mode == "approval" %}
+          <td>{{ req.employee.get_full_name|default_if_none:req.employee.username }}</td>
+        {% endif %}
         <td>{{ req.date }}</td>
         <td>{{ req.requested_time_in }}</td>
         <td>{{ req.requested_time_out }}</td>
         <td>{{ req.reason }}</td>
-
-        <!-- Status Column -->
+        <td><span class="badge bg-warning text-dark">Pending</span></td>
         <td>
-          {% if req.status == 'pending' %}
-            <span class="badge bg-warning text-dark">Pending</span>
-          {% elif req.status == 'approved' %}
-            <span class="badge bg-success">Approved</span>
-          {% elif req.status == 'rejected' %}
-            <span class="badge bg-danger">Rejected</span>
-          {% endif %}
-        </td>
-
-        <!-- Action Column -->
-        <td>
-          {% if req.status == 'pending' %}
-            {% if user.role == "supervisor" and req.employee.role == "employee" %}
-              <a href="{% url 'users:approve_schedule_change' req.pk %}" class="btn btn-success btn-sm">Approve</a>
-              <a href="{% url 'users:reject_schedule_change' req.pk %}" class="btn btn-danger btn-sm">Reject</a>
-            {% elif user.role == "manager" and req.employee.role == "supervisor" %}
-              <a href="{% url 'users:approve_schedule_change' req.pk %}" class="btn btn-success btn-sm">Approve</a>
-              <a href="{% url 'users:reject_schedule_change' req.pk %}" class="btn btn-danger btn-sm">Reject</a>
-            {% elif req.employee == user %}
-              <a href="{% url 'users:edit_schedule_change' req.pk %}" class="btn btn-primary btn-sm">Edit</a>
-              <a href="{% url 'users:delete_schedule_change' req.pk %}" class="btn btn-danger btn-sm"
-                 onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
-            {% else %}
-              <span class="text-muted">No actions</span>
-            {% endif %}
+          {% if mode == "approval" %}
+            <a href="{% url 'users:approve_schedule_change' req.pk %}" class="btn btn-success btn-sm">Approve</a>
+            <a href="{% url 'users:reject_schedule_change' req.pk %}" class="btn btn-danger btn-sm">Reject</a>
           {% else %}
-            <span class="text-muted">No actions</span>
+            <a href="{% url 'users:edit_schedule_change' req.pk %}" class="btn btn-primary btn-sm">Edit</a>
+            <a href="{% url 'users:delete_schedule_change' req.pk %}" class="btn btn-danger btn-sm"
+               onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
           {% endif %}
         </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="7" class="text-center">No pending requests.</td>
       </tr>
       {% endfor %}
-    </tbody>
-  </table>
+    {% else %}
+      <tr>
+        <td colspan="{% if mode == 'approval' %}7{% else %}6{% endif %}" class="text-center text-muted">
+          {% if mode == "my_requests" %}
+            You don’t have any schedule change requests yet.
+          {% else %}
+            No employee requests awaiting your approval.
+          {% endif %}
+        </td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+
 
   <!-- ✅ History of Approved/Rejected -->
   <h3 class="mt-5">📜 History of Schedule Change Requests</h3>
@@ -91,7 +92,7 @@
     <tbody>
       {% for hist in history %}
       <tr>
-        <td>{{ hist.employee.get_full_name|default:hist.employee.username }}</td>
+        <td>{{ hist.employee.get_full_name|default_if_none:hist.employee.username }}</td>
         <td>{{ hist.date }}</td>
         <td>{{ hist.requested_time_in }}</td>
         <td>{{ hist.requested_time_out }}</td>
@@ -105,7 +106,7 @@
         </td>
         <td>
           {% if hist.approved_by %}
-            {{ hist.approved_by.get_full_name|default:hist.approved_by.username }}
+            {{ hist.approved_by.get_full_name|default_if_none:hist.approved_by.username }}
           {% else %}
             <span class="text-muted">—</span>
           {% endif %}
@@ -118,6 +119,7 @@
       {% endfor %}
     </tbody>
   </table>
-<a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary">Back</a>
+
+  <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary">Back</a>
 </div>
 {% endblock %}

@@ -769,38 +769,41 @@ def get_schedule_for_date(request: HttpRequest) -> HttpResponse:
 @login_required
 def pending_schedule_changes(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
+    mode = request.GET.get("mode", "approval")  # Default to approval mode
 
-    # --- Pending requests ---
-    if user.role == "employee":
-        # Employees see only their own pending requests
-        requests = ScheduleChangeRequest.objects.filter(employee=user, status="pending")
+    # Determine pending requests based on mode
+    if mode == "my_requests":
+        # Supervisor sees only their own pending requests
+        approval_requests = ScheduleChangeRequest.objects.filter(employee=user, status="pending")
+    else:  # approval mode
+        if user.role == "supervisor":
+            approval_requests = ScheduleChangeRequest.objects.filter(employee__role="employee", status="pending")
+        elif user.role == "manager":
+            approval_requests = ScheduleChangeRequest.objects.filter(employee__role="supervisor", status="pending")
+        else:
+            approval_requests = ScheduleChangeRequest.objects.none()
 
-    elif user.role == "supervisor":
-        # Supervisors see their own + pending employee requests
-        requests = ScheduleChangeRequest.objects.filter(
-            Q(employee=user) | Q(employee__role="employee"),
-            status="pending"
+    # History of approved/rejected requests
+    if user.role == "supervisor":
+        history = ScheduleChangeRequest.objects.filter(
+            Q(employee__role="employee") | Q(employee=user),
+            status__in=["approved", "rejected"]
         )
-
     elif user.role == "manager":
-        # Managers see only supervisor requests
-        requests = ScheduleChangeRequest.objects.filter(
-            employee__role="supervisor",
-            status="pending"
+        history = ScheduleChangeRequest.objects.filter(
+            Q(employee__role="supervisor") | Q(employee=user),
+            status__in=["approved", "rejected"]
         )
     else:
-        requests = ScheduleChangeRequest.objects.none()
+        history = ScheduleChangeRequest.objects.filter(employee=user, status__in=["approved", "rejected"])
 
-    # --- History (own requests only, approved/rejected) ---
-    history = ScheduleChangeRequest.objects.filter(
-        employee=user
-    ).exclude(status="pending").order_by("-date")
-
-    return render(
-        request,
-        "attendance/pending_schedule_changes.html",
-        {"requests": requests, "history": history},
-    )
+    context = {
+        "user": user,
+        "mode": mode,
+        "approval_requests": approval_requests,
+        "history": history,
+    }
+    return render(request, "attendance/pending_schedule_changes.html", context)
 
 
 @login_required
