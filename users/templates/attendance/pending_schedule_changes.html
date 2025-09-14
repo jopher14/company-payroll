@@ -4,8 +4,15 @@
 {% block content %}
 <div class="container mt-4">
 
+  <!-- Header with Button -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">📋 Pending Schedule Change Requests</h3>
+    <div>
+      <a href="{% url 'users:request_schedule_change' %}" class="btn btn-success">🗓 Request Schedule Change</a>
+    </div>
+  </div>
+
   <!-- ✅ Pending Requests -->
-  <h3>📋 Pending Schedule Change Requests</h3>
   <table class="table table-bordered mt-3">
     <thead class="table-dark">
       <tr>
@@ -111,8 +118,6 @@
       {% endfor %}
     </tbody>
   </table>
-
-  <a href="{% url 'users:request_schedule_change' %}" class="btn btn-success mb-3">🗓 Request Schedule Change</a>
-  <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary mb-3">Back</a>
+<a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary">Back</a>
 </div>
 {% endblock %}

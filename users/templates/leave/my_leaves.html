@@ -1,7 +1,12 @@
 {% extends "main/base.html" %}
 {% block content %}
 <div class="container mt-5">
-  <h3 class="mb-3">My Leave Requests</h3>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">My Leave Requests</h3>
+    <div>
+      <a href="{% url 'users:file_leave' %}" class="btn btn-success">+ Request Leave</a>
+    </div>
+  </div>
 
   <!-- Pending Requests -->
   <h5>Pending Requests</h5>
@@ -77,8 +82,6 @@
       {% endfor %}
     </tbody>
   </table>
-
-  <a href="{% url 'users:file_leave' %}" class="btn btn-success mb-3">+ File Leave</a>
-  <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>
+<a href="{% url 'main:dashboard' %}" class="btn btn-secondary">Back</a>
 </div>
 {% endblock %}
