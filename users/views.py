@@ -16,6 +16,12 @@ from django.utils.timezone import localdate
 
 
 @login_required
+def profile_view(request: HttpRequest) -> HttpResponse:
+    user = cast(User, request.user)  # Get the logged-in user
+    return render(request, "users/profile.html", {"user": user})
+
+
+@login_required
 def manager_dashboard(request: HttpRequest) -> HttpResponse:
     # Tell mypy that request.user is your User model
     user = request.user

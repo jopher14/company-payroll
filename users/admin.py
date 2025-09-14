@@ -5,22 +5,33 @@ from payroll.models import Payroll
 
 
 class UserAdmin(BaseUserAdmin):
-    # Fields to display in admin list view
-    list_display = ("username", "email", "role", "is_staff", "is_superuser")
-    list_filter = ("role", "is_staff", "is_superuser")
-    search_fields = ("username", "email")
+    # Fields to display in the admin list view
+    list_display = (
+        "username", "email", "first_name", "last_name", "role", "status", "position", "is_staff", "is_superuser"
+    )
+    list_filter = ("role", "status", "is_staff", "is_superuser")
+    search_fields = ("username", "email", "first_name", "last_name")
     ordering = ("username",)
 
+    # Exclude superusers from the list
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Exclude superusers (admin accounts)
         return qs.exclude(is_superuser=True)
 
-    # Fields to edit in admin form
+    # Fields to edit in the admin form
     fieldsets = (
         (None, {"fields": ("username", "password")}),
-        ("Personal info", {"fields": ("first_name", "last_name", "email")}),
-        ("Permissions", {"fields": ("role", "is_staff", "is_active", "is_superuser", "groups", "user_permissions")}),
+        ("Personal info", {
+            "fields": (
+                "first_name", "last_name", "email", "position", "photo", "birthday", "contact_number"
+            )
+        }),
+        ("Permissions", {
+            "fields": ("role", "status", "is_staff", "is_active", "is_superuser", "groups", "user_permissions")
+        }),
+        ("Salary & Benefits", {
+            "fields": ("salary", "allowances", "sss", "tin", "pagibig", "philhealth", "leave_count")
+        }),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
     )
 
@@ -28,19 +39,13 @@ class UserAdmin(BaseUserAdmin):
         (None, {
             "classes": ("wide",),
             "fields": (
-                "username",
-                "email",
-                "role",
-                "password1",
-                "password2",
-                "is_staff",
-                "is_superuser"
+                "username", "email", "role", "status", "password1", "password2", "is_staff", "is_superuser"
             ),
         }),
     )
 
 
-# Register the custom User model with the custom UserAdmin
+# Register the custom User model with this admin
 admin.site.register(User, UserAdmin)
 
 

@@ -1,0 +1,99 @@
+{% extends "main/base.html" %}
+{% load static widget_tweaks %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white text-center">
+            <h4 class="mb-0"><i class="bi bi-person-circle me-2"></i>{{ user.get_full_name }}</h4>
+            <p class="mb-0">{{ user.role|capfirst }}</p>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <!-- Profile Image Column -->
+                <div class="col-md-3 text-center">
+                    <img src="{{ user.photoOrDefault }}" 
+                        class="img-thumbnail"
+                        alt="{{ user.get_full_name }}" 
+                        width="150" height="150"
+                        style="object-fit: cover;">
+                </div>
+
+                <!-- Personal Info Table Column -->
+                <div class="col-md-9">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th>First Name</th>
+                                <td>{{ user.first_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Last Name</th>
+                                <td>{{ user.last_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Email</th>
+                                <td>{{ user.email }}</td>
+                            </tr>
+                            {% if user.phone_number %}
+                            <tr>
+                                <th>Phone Number</th>
+                                <td>{{ user.phone_number }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if user.address %}
+                            <tr>
+                                <th>Address</th>
+                                <td>{{ user.address }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>Role</th>
+                                <td>{{ user.role|capfirst }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date Joined</th>
+                                <td>{{ user.date_joined|date:"F j, Y, g:i a" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Government Info Table -->
+            <h5 class="mt-4 mb-3">Government Information & Salary</h5>
+            <table class="table table-striped">
+                <tbody>
+                    {% if user.sss %}
+                    <tr>
+                        <th>SSS Number</th>
+                        <td>{{ user.sss }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if user.tin %}
+                    <tr>
+                        <th>TIN Number</th>
+                        <td>{{ user.tin }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if user.philhealth %}
+                    <tr>
+                        <th>PhilHealth Number</th>
+                        <td>{{ user.philhealth }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if user.pagibig %}
+                    <tr>
+                        <th>Pag-IBIG Number</th>
+                        <td>{{ user.pagibig }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
