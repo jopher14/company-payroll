@@ -6,46 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Company Portal{% endblock %}</title>
 
-    <!-- FullCalendar CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
-
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .navbar-brand {
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-        .btn-link.nav-link {
-            color: #fff;
-            text-decoration: none;
-        }
-        .btn-link.nav-link:hover {
-            color: #ffc107;
-        }
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: bold; letter-spacing: 1px; }
+        .btn-link.nav-link { color: #fff; text-decoration: none; }
+        .btn-link.nav-link:hover { color: #ffc107; }
         .navbar-center {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #fff;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            color: #fff; font-weight: 500; display: flex; align-items: center;
+        }
+        @media (max-width: 991px) {
+            .navbar-center { position: static; transform: none; justify-content: center; margin-top: .5rem; }
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm position-relative">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'main:dashboard' %}">🏢 Company</a>
+        <div class="container flex-column flex-lg-row">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <a class="navbar-brand" href="{% url 'main:dashboard' %}">🏢 Company</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
 
-            <!-- Centered Full Name -->
             {% if user.is_authenticated %}
                 <div class="navbar-center">
                     <a href="{% url 'users:profile' %}" class="text-decoration-none text-light">
@@ -55,28 +44,22 @@
                 </div>
             {% endif %}
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav align-items-center">
+            <div class="collapse navbar-collapse justify-content-end w-100" id="navbarNav">
+                <ul class="navbar-nav align-items-center ms-auto">
                     {% if user.is_authenticated and user.last_login %}
-                    <li class="nav-item me-3 text-light d-flex align-items-center">
-                        <i class="bi bi-clock me-1"></i>
-                        {{ user.last_login|date:"Y-m-d H:i" }}
-                    </li>
-
-                    <!-- Logout -->
-                    <li class="nav-item">
-                        <form method="post" action="{% url 'users:logout' %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="button" class="nav-link btn btn-link p-0 m-0 text-decoration-none text-light"
-                                    data-bs-toggle="modal" data-bs-target="#logoutModal">
-                                <i class="bi bi-box-arrow-right me-1"></i> Logout
-                            </button>
-                        </form>
-                    </li>
+                        <li class="nav-item me-3 text-light d-flex align-items-center">
+                            <i class="bi bi-clock me-1"></i>
+                            {{ user.last_login|date:"Y-m-d H:i" }}
+                        </li>
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="button" class="nav-link btn btn-link p-0 m-0 text-decoration-none text-light"
+                                        data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                                </button>
+                            </form>
+                        </li>
                     {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'users:login' %}">
@@ -97,17 +80,15 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Logout Confirmation Modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <!-- Logout Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Confirm Logout</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    Are you sure you want to log out?
-                </div>
+                <div class="modal-body">Are you sure you want to log out?</div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <form method="post" action="{% url 'users:logout' %}" class="d-inline">
@@ -119,8 +100,64 @@
         </div>
     </div>
 
-    <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <!-- Multiple Login Modal -->
+    <div class="modal fade" id="multiLoginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">⚠ Multiple Login Detected</h5>
+                </div>
+                <div class="modal-body text-center">
+                    Your account was logged in from another device.<br>
+                    This session will be logged out in <span id="multiCountdown">10</span> seconds.
+                </div>
+                <div class="modal-footer">
+                    <form method="post" action="{% url 'users:logout' %}" id="multiLogoutForm">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Logout Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+(function() {
+    const modalEl = document.getElementById("multiLoginModal");
+    const countdownEl = document.getElementById("multiCountdown");
+    const logoutForm = document.getElementById("multiLogoutForm");
+    let countdown = 10;
+    let timer = null;
+    let modal = null;
+
+    async function checkForceLogout() {
+        try {
+            const response = await fetch("{% url 'users:check_force_logout' %}");
+            const data = await response.json();
+
+            if (data.force_logout) {
+                if (!modal) {
+                    modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                    timer = setInterval(() => {
+                        countdown--;
+                        countdownEl.textContent = countdown;
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            logoutForm.submit();
+                        }
+                    }, 1000);
+                }
+            }
+        } catch (err) {
+            console.error("Error checking force logout:", err);
+        }
+    }
+
+    // Poll every 5 seconds
+    setInterval(checkForceLogout, 5000);
+})();
+</script>
 
 </body>
 </html>

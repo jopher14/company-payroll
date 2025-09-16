@@ -937,3 +937,10 @@ def delete_schedule_change(request: HttpRequest, pk: int) -> HttpResponse:
         "attendance/delete_schedule_change_confirm.html",
         {"object": change_request}  # standard Django naming for DeleteView compatibility
     )
+
+
+@login_required
+def check_force_logout(request):
+    return JsonResponse({
+        "force_logout": request.session.get("force_logout", False)
+    })

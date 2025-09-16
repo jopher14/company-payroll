@@ -31,6 +31,10 @@ class User(AbstractUser):
         (INACTIVE, "Inactive"),
     ]
 
+    # Multiple login detections
+    current_session_key = models.CharField(max_length=40, null=True, blank=True)
+    last_session_key = models.CharField(max_length=40, blank=True, null=True)
+
     # Basic info
     position = models.CharField(max_length=100, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=EMPLOYEE)

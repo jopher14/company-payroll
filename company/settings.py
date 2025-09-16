@@ -26,7 +26,11 @@ SECRET_KEY = "django-insecure-e(zuzy@5u$mq^^az=e7=zrn^h%mp#z97p0y($#bflxe4as20_1
 DEBUG = True
 
 # for creating a webserver locally
-# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.100.154"
+]
 
 
 # Application definition
@@ -54,6 +58,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "users.middleware.OneSessionPerUserMiddleware",
 ]
 
 ROOT_URLCONF = "company.urls"

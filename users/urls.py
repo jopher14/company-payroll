@@ -10,6 +10,9 @@ urlpatterns = [
     path(route="login/", view=LoginView.as_view(template_name='users/login.html'), name='login'),
     path(route="logout/", view=LogoutView.as_view(template_name="users/logged_out.html"), name='logout'),
 
+    # Multiple session
+    path(route="check-force-logout/", view=views.check_force_logout, name="check_force_logout"),
+
     # HR only
     path(route="register/", view=views.register, name="register"),
     path(route="employees/", view=views.employee_list, name="employee_list"),
