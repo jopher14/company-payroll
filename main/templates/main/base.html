@@ -121,14 +121,34 @@
         </div>
     </div>
 
+    {% if user.is_authenticated %}
+    <!-- Inactivity Logout Modal -->
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">⚠ Inactivity Logout Warning</h5>
+                </div>
+                <div class="modal-body text-center">
+                    You have been inactive.<br>
+                    You will be logged out in <span id="inactivityCountdown">60</span> seconds.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="stayLoggedInBtn">Stay Logged In</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 (function() {
-    const modalEl = document.getElementById("multiLoginModal");
-    const countdownEl = document.getElementById("multiCountdown");
+    // --- MULTIPLE LOGIN LOGIC (unchanged) ---
+    const multiModalEl = document.getElementById("multiLoginModal");
+    const multiCountdownEl = document.getElementById("multiCountdown");
     const logoutForm = document.getElementById("multiLogoutForm");
-    let countdown = 10;
-    let timer = null;
-    let modal = null;
+    let multiCountdown = 10;
+    let multiTimer = null;
+    let multiModal = null;
 
     async function checkForceLogout() {
         try {
@@ -136,14 +156,14 @@
             const data = await response.json();
 
             if (data.force_logout) {
-                if (!modal) {
-                    modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                    timer = setInterval(() => {
-                        countdown--;
-                        countdownEl.textContent = countdown;
-                        if (countdown <= 0) {
-                            clearInterval(timer);
+                if (!multiModal) {
+                    multiModal = new bootstrap.Modal(multiModalEl);
+                    multiModal.show();
+                    multiTimer = setInterval(() => {
+                        multiCountdown--;
+                        multiCountdownEl.textContent = multiCountdown;
+                        if (multiCountdown <= 0) {
+                            clearInterval(multiTimer);
                             logoutForm.submit();
                         }
                     }, 1000);
@@ -154,10 +174,48 @@
         }
     }
 
-    // Poll every 5 seconds
     setInterval(checkForceLogout, 5000);
+
+    // --- INACTIVITY LOGOUT LOGIC (updated) ---
+    const inactivityModalEl = document.getElementById("inactivityModal");
+    const inactivityCountdownEl = document.getElementById("inactivityCountdown");
+    const stayLoggedInBtn = document.getElementById("stayLoggedInBtn");
+    let inactivityTimer, inactivityCountdown = 60, inactivityInterval;
+    const inactivityModal = new bootstrap.Modal(inactivityModalEl);
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        clearInterval(inactivityInterval);
+        inactivityCountdown = 60; // 1 minute countdown after warning
+        inactivityCountdownEl.textContent = inactivityCountdown;
+        inactivityTimer = setTimeout(showInactivityWarning, 2 * 60 * 1000); // 2 mins of inactivity
+    }
+
+    function showInactivityWarning() {
+        inactivityModal.show();
+        inactivityInterval = setInterval(() => {
+            inactivityCountdown--;
+            inactivityCountdownEl.textContent = inactivityCountdown;
+            if (inactivityCountdown <= 0) {
+                clearInterval(inactivityInterval);
+                logoutForm.submit();
+            }
+        }, 1000);
+    }
+
+    stayLoggedInBtn.addEventListener("click", function() {
+        inactivityModal.hide();
+        resetInactivityTimer();
+    });
+
+    // Reset timer on any user activity
+    ["click"].forEach(evt => {
+        document.addEventListener(evt, resetInactivityTimer);
+    });
+
+    resetInactivityTimer();
 })();
 </script>
-
+{% endif %}
 </body>
 </html>

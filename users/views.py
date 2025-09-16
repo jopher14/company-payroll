@@ -940,7 +940,7 @@ def delete_schedule_change(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
-def check_force_logout(request):
+def check_force_logout(request: HttpRequest) -> JsonResponse:
     return JsonResponse({
         "force_logout": request.session.get("force_logout", False)
     })

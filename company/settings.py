@@ -142,3 +142,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = 'main:dashboard'
 LOGOUT_REDIRECT_URL = 'users:login'
+
+# 15 minutes of inactivity
+SESSION_COOKIE_AGE = 15 * 60
+SESSION_SAVE_EVERY_REQUEST = True
