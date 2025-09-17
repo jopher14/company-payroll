@@ -220,19 +220,17 @@
           <!-- Tab Content -->
           <div class="tab-content" id="dashboardTabsContent">
 
-              <!-- Calendar -->
-              <div class="tab-pane fade show active" id="calendar" role="tabpanel">
-                <div id="attendance-calendar" class="border rounded p-3 bg-light"></div>
-              </div>
-            </div>
+                <!-- Calendar -->
+                <div class="tab-pane fade show active tab-animated" id="calendar" role="tabpanel">
+                  <div id="attendance-calendar" class="border rounded p-3 bg-light"></div>
+                </div>
 
             <!-- Announcements -->
-            <div class="tab-pane fade" id="announcements" role="tabpanel">
+            <div class="tab-pane fade tab-animated" id="announcements" role="tabpanel">
               <h4>📢 Latest Announcements</h4>
-
               <div class="list-group mt-3">
                 {% for ann in announcement %}
-                  <div class="list-group-item shadow-sm mb-3 p-4 rounded">
+                  <div class="list-group-item shadow-sm mb-3 p-4 rounded fade-in-up">
                     <div class="d-flex justify-content-between align-items-start">
                       <div>
                         <h5 class="mb-1">{{ ann.title }}</h5>
@@ -256,7 +254,6 @@
                 {% endfor %}
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -306,6 +303,26 @@ document.addEventListener("DOMContentLoaded", function () {
   position: absolute;
   display: none;
   z-index: 1000;
+}
+
+/* 🌟 Tab switching animation */
+.tab-animated {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+.tab-pane.fade.show.active.tab-animated {
+  animation-name: fadeSlideIn;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
 {% endblock %}

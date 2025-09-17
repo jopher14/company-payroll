@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-center align-items-center" style="min-height: 90vh;">
-  <div class="card shadow-lg border-0 rounded-4 p-4" style="max-width: 420px; width: 100%;">
+  <div class="card shadow-lg border-0 rounded-4 p-4 login-card" style="max-width: 420px; width: 100%;">
     
     <!-- Card Header -->
     <div class="text-center mb-4">
@@ -15,7 +15,7 @@
       <p class="text-muted small">Please sign in with your credentials</p>
     </div>
 
-    <!-- ✅ Global Non-field Errors (e.g. wrong login) -->
+    <!-- ✅ Global Non-field Errors -->
     {% if form.non_field_errors %}
       <div class="alert alert-danger alert-dismissible fade show" role="alert">
         {{ form.non_field_errors.0 }}
@@ -72,18 +72,6 @@
       <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">Login</button>
     </form>
 
-    <!-- Footer -->
-    <div class="mt-4 text-center">
-      {% if user.is_authenticated and user.role == "human_resources" %}
-        <small class="text-muted">
-          Want to add a new employee? 
-          <a href="{% url 'register' %}" class="text-decoration-none">Register</a>
-        </small>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
 <!-- Password Toggle -->
 <script>
 function togglePassword() {
@@ -98,4 +86,23 @@ function togglePassword() {
   }
 }
 </script>
+
+<!-- ✨ Animation Styles -->
+<style>
+/* Fade + Slide In */
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-card {
+  animation: fadeSlideIn 0.8s ease-out;
+}
+</style>
 {% endblock content %}
