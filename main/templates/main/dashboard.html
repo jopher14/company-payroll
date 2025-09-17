@@ -50,47 +50,46 @@
               </a>
 
               <!-- Approvals -->
-              <div class="dropdown w-100 mb-2">
+              <div class="expandable w-100">
                 <button 
-                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
-                  type="button" 
-                  id="approvalsMenu" 
-                  data-bs-toggle="dropdown" 
-                  aria-expanded="false">
-                  ✅ Approvals
+                class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
+                type="button">
+                <span>✅ Approvals</span>
+
+                <span class="d-flex align-items-center gap-2">
                   {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
                     {% if total_pending > 0 %}
                       <span class="badge bg-danger">{{ total_pending }}</span>
                     {% endif %}
                   {% endwith %}
-                </button>
-                <ul class="dropdown-menu w-100" aria-labelledby="approvalsMenu">
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
-                      📑 Leave Requests
-                      {% if pending_leaves_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_leaves_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
-                      ⏰ Overtime Requests
-                      {% if pending_overtimes_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
-                      📋 Schedule Changes
-                      {% if pending_schedule_changes_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                </ul>
+                  <span class="caret">▼</span>
+                </span>
+              </button>
+
+                <div class="expand-content">
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                    📑 Leave Requests
+                    {% if pending_leaves_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_leaves_count }}</span>
+                    {% endif %}
+                  </a>
+
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
+                    ⏰ Overtime Requests
+                    {% if pending_overtimes_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
+                    {% endif %}
+                  </a>
+
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                    📋 Schedule Changes
+                    {% if pending_schedule_changes_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
+                    {% endif %}
+                  </a>
+                </div>
               </div>
+
 
               <!-- Payroll -->
               <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
@@ -106,97 +105,88 @@
               </a>
 
               <!-- File Requests -->
-              <div class="dropdown w-100 mb-2">
+              <div class="expandable w-100">
                 <button 
-                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
-                  type="button" 
-                  id="fileRequestsMenu" 
-                  data-bs-toggle="dropdown" 
-                  aria-expanded="false">
+                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
+                  type="button">
                   📝 File Requests
+                  <span class="caret">▼</span>
                 </button>
-                <ul class="dropdown-menu w-100" aria-labelledby="fileRequestsMenu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'users:my_leaves' %}">
-                      📑 File a Leave
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'users:my_pending_overtime' %}">
-                      ⏱ File Overtime
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'users:my_pending_schedule_change' %}">
-                        🗓 File Change Schedule
-                    </a>
-                  </li>
-                </ul>
+
+                <div class="expand-content">
+                  <a class="expand-item" href="{% url 'users:my_leaves' %}">
+                    📑 File a Leave
+                  </a>
+                  <a class="expand-item" href="{% url 'users:my_pending_overtime' %}">
+                    ⏱ File Overtime
+                  </a>
+                  <a class="expand-item" href="{% url 'users:my_pending_schedule_change' %}">
+                    🗓 File Change Schedule
+                  </a>
+                </div>
               </div>
 
               <!-- Approvals -->
-              <div class="dropdown w-100 mb-2">
+              <div class="expandable w-100">
                 <button 
-                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center dropdown-toggle" 
-                  type="button" 
-                  id="approvalsMenu" 
-                  data-bs-toggle="dropdown" 
-                  aria-expanded="false">
-                  ✅ Approvals
+                class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
+                type="button">
+                <span>✅ Approvals</span>
+
+                <span class="d-flex align-items-center gap-2">
                   {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
                     {% if total_pending > 0 %}
                       <span class="badge bg-danger">{{ total_pending }}</span>
                     {% endif %}
                   {% endwith %}
-                </button>
-                <ul class="dropdown-menu w-100" aria-labelledby="approvalsMenu">
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
-                      📑 Leave Requests
-                      {% if pending_leaves_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_leaves_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_overtimes' %}">
-                      ⏰ Overtime Requests
-                      {% if pending_overtimes_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
-                      📋 Schedule Changes
-                      {% if pending_schedule_changes_count > 0 %}
-                        <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
-                      {% endif %}
-                    </a>
-                  </li>
-                </ul>
+                  <span class="caret">▼</span>
+                </span>
+              </button>
+
+                <div class="expand-content">
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                    📑 Leave Requests
+                    {% if pending_leaves_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_leaves_count }}</span>
+                    {% endif %}
+                  </a>
+
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
+                    ⏰ Overtime Requests
+                    {% if pending_overtimes_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
+                    {% endif %}
+                  </a>
+
+                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                    📋 Schedule Changes
+                    {% if pending_schedule_changes_count > 0 %}
+                      <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
+                    {% endif %}
+                  </a>
+                </div>
               </div>
 
-              <!-- Payroll -->
-              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
-                💵 My Payslips
-              </a>
-            {% endif %}
+                <!-- Payroll -->
+                <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
+                  💵 My Payslips
+                </a>
+              {% endif %}
 
 
-            {% if user.role == "employee" %}
-              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
-              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
-              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
-              <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">⏱ File Overtime</a>
-              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+              {% if user.role == "employee" %}
+                <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+                <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+                <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
+                <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">⏱ File Overtime</a>
+                <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
 
-            {% endif %}
+              {% endif %}
 
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Main Panel (Calendar / Announcements) -->
     <div class="col-md-9">
@@ -324,5 +314,65 @@ document.addEventListener("DOMContentLoaded", function () {
     transform: translateY(0);
   }
 }
+
+
+/* Expandable content */
+.expandable .expand-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+/* Active/open */
+.expandable.active .expand-content {
+  max-height: 500px; /* adjust if you expect more items */
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Button */
+.expandable .expand-toggle {
+  border-radius: 0.5rem;
+  margin: 0;
+}
+
+/* Flatten corners when expanded */
+.expandable.active .expand-toggle {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Items */
+.expandable .expand-item {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+.expandable .expand-item:hover {
+  background: #f1f1f1;
+}
+
+/* Caret rotation */
+.expandable .caret {
+  margin-left: auto;
+  transition: transform 0.3s;
+}
+.expandable.active .caret {
+  transform: rotate(180deg);
+}
+
+
 </style>
+
+<script>
+document.querySelectorAll('.expand-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const parent = btn.closest('.expandable');
+    parent.classList.toggle('active');
+  });
+});
+</script>
 {% endblock %}
