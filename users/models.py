@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from decimal import Decimal
 from django.templatetags.static import static
-from datetime import timezone
+from django.utils import timezone
 
 
 class User(AbstractUser):

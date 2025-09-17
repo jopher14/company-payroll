@@ -155,10 +155,17 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     pending_overtimes_count = 0
     pending_schedule_changes_count = 0
 
-    if user.role in ["manager", "supervisor"]:
-        pending_leaves_count = Leave.objects.filter(status="Pending").count()  # check the capitalize
+    if user.role == "manager":
+        # Manager sees ALL pending requests
+        pending_leaves_count = Leave.objects.filter(status="Pending").count()
         pending_overtimes_count = Overtime.objects.filter(status="pending").count()
         pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").count()
+
+    elif user.role == "supervisor":
+        # Supervisor sees only pending requests NOT created by themselves
+        pending_leaves_count = Leave.objects.filter(status="Pending").exclude(employee=user).count()
+        pending_overtimes_count = Overtime.objects.filter(status="pending").exclude(employee=user).count()
+        pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").exclude(employee=user).count()
 
     context = {
         "user": user,
