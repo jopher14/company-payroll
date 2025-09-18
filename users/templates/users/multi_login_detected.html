@@ -1,0 +1,54 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}Session Logged Out{% endblock %}
+
+{% block content %}
+  <div class="d-flex align-items-center justify-content-center vh-100">
+    <div class="card shadow-lg border-0 rounded-3 text-center" style="max-width: 420px;">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">⚠️ Session Logged Out</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">
+          Your account was signed in from another device, so this session has been logged out.
+        </p>
+        <p class="mb-3">
+          Redirecting to Login in
+          <strong id="multiCountdown">10</strong> second<span id="multiPlural">s</span>.
+        </p>
+        <a href="{% url 'users:login' %}" id="multiLoginBtn" class="btn btn-danger w-100">Go to Login Now</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var seconds = 10;
+      var countdownEl = document.getElementById("multiCountdown");
+      var pluralEl = document.getElementById("multiPlural");
+      var loginUrl = "{% url 'users:login' %}";
+
+      function updateCountdown() {
+        countdownEl.textContent = seconds;
+        pluralEl.textContent = seconds === 1 ? "" : "s";
+      }
+      updateCountdown();
+
+      var timer = setInterval(function () {
+        seconds -= 1;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          window.location.href = loginUrl;
+        } else {
+          updateCountdown();
+        }
+      }, 1000);
+
+      document.getElementById("multiLoginBtn").addEventListener("click", function () {
+        clearInterval(timer);
+      });
+    });
+  </script>
+{% endblock content %}
+

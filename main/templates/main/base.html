@@ -100,27 +100,6 @@
         </div>
     </div>
 
-    <!-- Multiple Login Modal -->
-    <div class="modal fade" id="multiLoginModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">⚠ Multiple Login Detected</h5>
-                </div>
-                <div class="modal-body text-center">
-                    Your account was logged in from another device.<br>
-                    This session will be logged out in <span id="multiCountdown">10</span> seconds.
-                </div>
-                <div class="modal-footer">
-                    <form method="post" action="{% url 'users:logout' %}" id="multiLogoutForm">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger">Logout Now</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {% if user.is_authenticated %}
     <!-- Inactivity Logout Modal -->
     <div class="modal fade" id="inactivityModal" tabindex="-1" aria-hidden="true">
@@ -142,39 +121,6 @@
 
 <script>
 (function() {
-    // --- MULTIPLE LOGIN LOGIC (unchanged) ---
-    const multiModalEl = document.getElementById("multiLoginModal");
-    const multiCountdownEl = document.getElementById("multiCountdown");
-    const logoutForm = document.getElementById("multiLogoutForm");
-    let multiCountdown = 10;
-    let multiTimer = null;
-    let multiModal = null;
-
-    async function checkForceLogout() {
-        try {
-            const response = await fetch("{% url 'users:check_force_logout' %}");
-            const data = await response.json();
-
-            if (data.force_logout) {
-                if (!multiModal) {
-                    multiModal = new bootstrap.Modal(multiModalEl);
-                    multiModal.show();
-                    multiTimer = setInterval(() => {
-                        multiCountdown--;
-                        multiCountdownEl.textContent = multiCountdown;
-                        if (multiCountdown <= 0) {
-                            clearInterval(multiTimer);
-                            logoutForm.submit();
-                        }
-                    }, 1000);
-                }
-            }
-        } catch (err) {
-            console.error("Error checking force logout:", err);
-        }
-    }
-
-    setInterval(checkForceLogout, 5000);
 
     // --- INACTIVITY LOGOUT LOGIC (updated) ---
     const inactivityModalEl = document.getElementById("inactivityModal");

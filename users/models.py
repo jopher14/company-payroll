@@ -4,6 +4,7 @@ from django.conf import settings
 from decimal import Decimal
 from django.templatetags.static import static
 from django.utils import timezone
+import uuid
 
 
 class User(AbstractUser):
@@ -31,9 +32,7 @@ class User(AbstractUser):
         (INACTIVE, "Inactive"),
     ]
 
-    # Multiple login detections
-    current_session_key = models.CharField(max_length=40, null=True, blank=True)
-    last_session_key = models.CharField(max_length=40, blank=True, null=True)
+    login_token = models.UUIDField(default=uuid.uuid4, editable=False)
 
     # Basic info
     position = models.CharField(max_length=100, blank=True, null=True)

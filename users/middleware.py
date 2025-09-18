@@ -1,11 +1,15 @@
-from django.utils.deprecation import MiddlewareMixin
-from django.http import HttpRequest
+from django.shortcuts import redirect
 
 
-class OneSessionPerUserMiddleware(MiddlewareMixin):
-    def process_request(self, request: HttpRequest):
-        if not request.user.is_authenticated:
-            return
+class OneSessionPerUserMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-        # Flag old session dynamically
-        setattr(request, "force_logout", request.session.get("force_logout", False))
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            session_token = request.session.get("login_token")
+            if not session_token or str(request.user.login_token) != session_token:
+                from django.contrib.auth import logout
+                logout(request)
+                return redirect("users:multi_login_detected")  # new URL pattern
+        return self.get_response(request)
