@@ -32,8 +32,18 @@ class UserRegistrationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Apply Bootstrap form-control class
         for field in self.fields.values():
             field.widget.attrs.update({"class": "form-control"})
+
+        # Filter out "admin" from role choices
+        if "role" in self.fields:
+            self.fields["role"].choices = [
+                (key, label)
+                for key, label in self.fields["role"].choices
+                if key != User.ADMIN
+            ]
 
 
 class LeaveForm(forms.ModelForm):
