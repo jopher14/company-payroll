@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from decimal import Decimal
 import calendar
+from datetime import date
+from users.models import Attendance
 
 User = settings.AUTH_USER_MODEL
 
@@ -39,6 +41,8 @@ class Payroll(models.Model):
     holiday_pay = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
     # Deductions
+    attendance_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
     sss = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     philhealth = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     pagibig = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
@@ -102,3 +106,54 @@ class Payroll(models.Model):
             return func(self.hourly_rate, self.overtime_hours)
 
         return Decimal("0.00")
+
+    def compute_attendance_deduction(self) -> Decimal:
+        """Sum attendance deductions for this employee in the payroll period"""
+
+        if self.period == "first_half":
+            start_date = date(self.year, self.month, 1)
+            end_date = date(self.year, self.month, 15)
+        else:  # second_half
+            last_day = calendar.monthrange(self.year, self.month)[1]
+            start_date = date(self.year, self.month, 16)
+            end_date = date(self.year, self.month, last_day)
+
+        attendances = Attendance.objects.filter(
+            employee=self.employee,
+            date__range=[start_date, end_date]
+        )
+
+        total_deduction = Decimal("0.00")
+        for att in attendances:
+            total_deduction += att.compute_deduction(
+                self.daily_rate, self.hourly_rate
+            )
+
+        return total_deduction
+
+    def save(self, *args, **kwargs):
+        # ✅ Auto-compute rates from basic salary
+        if self.basic_salary > 0:
+            self.daily_rate = self.basic_salary / Decimal(26)
+            self.hourly_rate = self.daily_rate / Decimal(8)
+
+        # ✅ Attendance deductions
+        self.attendance_deduction = self.compute_attendance_deduction()
+
+        # ✅ Overtime pay
+        self.overtime_pay = self.compute_overtime()
+
+        # ✅ Total deductions
+        self.total_deductions = (
+            self.attendance_deduction
+            + self.sss
+            + self.philhealth
+            + self.pagibig
+            + self.withholding_tax
+        )
+
+        # ✅ Net pay
+        gross_pay = self.basic_salary + self.allowances + self.overtime_pay + self.holiday_pay
+        self.net_pay = gross_pay - self.total_deductions
+
+        super().save(*args, **kwargs)

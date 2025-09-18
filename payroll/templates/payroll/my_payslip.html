@@ -52,6 +52,7 @@
                 <tr><td>PhilHealth</td><td>{{ payslip.philhealth|floatformat:2|intcomma }}</td></tr>
                 <tr><td>Pag-IBIG</td><td>{{ payslip.pagibig|floatformat:2|intcomma }}</td></tr>
                 <tr><td>Withholding Tax</td><td>{{ payslip.withholding_tax|floatformat:2|intcomma }}</td></tr>
+                <tr><td>Attendance Deduction</td><td>{{ payslip.attendance_deduction|default:"0.00"|floatformat:2|intcomma }}</td></tr>
                 <tr class="table-light"><td><strong>Total Deductions</strong></td><td><strong>{{ deductions|floatformat:2|intcomma }}</strong></td></tr>
             </tbody>
         </table>

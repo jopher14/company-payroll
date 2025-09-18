@@ -1,4 +1,5 @@
 from decimal import Decimal
+from users.models import Attendance
 
 
 def compute_sss(salary: Decimal) -> Decimal:
@@ -86,3 +87,27 @@ def compute_double_holiday_ot(hourly_rate: Decimal, hours: Decimal) -> Decimal:
 
 def compute_double_holiday_restday_ot(hourly_rate: Decimal, hours: Decimal) -> Decimal:
     return compute_overtime_pay(hourly_rate, hours, Decimal("5.07"))
+
+
+def compute_total_attendance_deduction(employee, year: int, month: int, start_day: int, end_day: int,
+                                       daily_rate: Decimal, hourly_rate: Decimal) -> Decimal:
+    """
+    Compute total attendance deductions for a given employee in a cutoff period.
+    Includes:
+    - Absent → 1 daily rate
+    - Half Day → 0.5 daily rate
+    - Late → prorated hourly rate
+    """
+    attendance_logs = Attendance.objects.filter(
+        employee=employee,
+        date__year=year,
+        date__month=month,
+        date__day__gte=start_day,
+        date__day__lte=end_day,
+    )
+
+    total_deduction = Decimal("0.00")
+    for att in attendance_logs:
+        total_deduction += att.compute_deduction(daily_rate, hourly_rate)
+
+    return total_deduction

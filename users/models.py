@@ -1,3 +1,4 @@
+from typing import Optional
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -5,6 +6,7 @@ from decimal import Decimal
 from django.templatetags.static import static
 from django.utils import timezone
 import uuid
+from datetime import datetime
 
 
 class User(AbstractUser):
@@ -198,19 +200,72 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.employee.username} - {self.date}"
 
+    # ✅ Cached property to avoid multiple queries
     @property
     def schedule(self):
-        return Schedule.objects.filter(employee=self.employee).first()
+        if not hasattr(self, "_schedule"):
+            self._schedule = Schedule.objects.filter(employee=self.employee).first()
+        return self._schedule
 
     @property
-    def status(self):
-        """Return a readable status for attendance"""
+    def status(self) -> str:
+        """Return attendance status (Present, Half Day, Absent)."""
         if self.time_in and self.time_out:
             return "Present"
-        elif self.time_in and not self.time_out:
+        if self.half_day or (self.time_in and not self.time_out):
             return "Half Day"
-        else:
-            return "Absent"
+        return "Absent"
+
+    @property
+    def late_hours(self) -> Decimal:
+        """Return hours late as decimal (0.00 if on time or no schedule)."""
+        if not self.schedule or not self.time_in:
+            return Decimal("0.00")
+
+        scheduled_in = datetime.combine(self.date, self.schedule.start_time)
+        actual_in = datetime.combine(self.date, self.time_in)
+
+        if actual_in <= scheduled_in:
+            return Decimal("0.00")
+
+        late_minutes = (actual_in - scheduled_in).seconds / 60
+        return Decimal(late_minutes) / Decimal(60)
+
+    @property
+    def undertime_hours(self) -> Decimal:
+        """Return undertime hours as decimal (0.00 if none)."""
+        if not self.schedule or not self.time_out:
+            return Decimal("0.00")
+
+        scheduled_out = datetime.combine(self.date, self.schedule.end_time)
+        actual_out = datetime.combine(self.date, self.time_out)
+
+        if actual_out >= scheduled_out:
+            return Decimal("0.00")
+
+        undertime_minutes = (scheduled_out - actual_out).seconds / 60
+        return Decimal(undertime_minutes) / Decimal(60)
+
+    def compute_deduction(self, daily_rate: Decimal, hourly_rate: Optional[Decimal] = None) -> Decimal:
+        """
+        Compute salary deduction based on attendance.
+        Allows optional override of daily/hourly rate.
+        """
+        daily_rate = daily_rate or getattr(self.employee, "daily_rate", Decimal("0.00"))
+        hourly_rate = hourly_rate or (daily_rate / Decimal("8.0") if daily_rate > 0 else Decimal("0.00"))
+
+        deduction = Decimal("0.00")
+
+        if self.status == "Absent":
+            return daily_rate
+
+        if self.status == "Half Day":
+            return daily_rate / Decimal("2")
+
+        deduction += self.late_hours * hourly_rate
+        deduction += self.undertime_hours * hourly_rate
+
+        return deduction
 
 
 class Day(models.Model):
