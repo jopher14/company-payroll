@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from decimal import Decimal
 import calendar
-from datetime import date
+from datetime import date, timedelta
 from users.models import Attendance
 
 User = settings.AUTH_USER_MODEL
@@ -56,6 +56,9 @@ class Payroll(models.Model):
     daily_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
+    # ✅ JSON field to store per-day attendance logs
+    attendance_breakdown = models.JSONField(default=list, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     month = models.PositiveSmallIntegerField()
     year = models.PositiveIntegerField()
@@ -107,40 +110,68 @@ class Payroll(models.Model):
 
         return Decimal("0.00")
 
-    def compute_attendance_deduction(self) -> Decimal:
-        """Sum attendance deductions for this employee in the payroll period"""
+    def compute_attendance_deduction(self):
+        """Compute attendance deductions and build breakdown logs."""
+        holidays = getattr(settings, "HOLIDAYS", set())  # or pass from utils
 
+        # cutoff dates
         if self.period == "first_half":
             start_date = date(self.year, self.month, 1)
             end_date = date(self.year, self.month, 15)
-        else:  # second_half
+        else:
             last_day = calendar.monthrange(self.year, self.month)[1]
             start_date = date(self.year, self.month, 16)
             end_date = date(self.year, self.month, last_day)
 
-        attendances = Attendance.objects.filter(
-            employee=self.employee,
-            date__range=[start_date, end_date]
-        )
+        # prefetch attendance
+        attendance_map = {
+            att.date: att
+            for att in Attendance.objects.filter(employee=self.employee, date__range=[start_date, end_date])
+        }
 
         total_deduction = Decimal("0.00")
-        for att in attendances:
-            total_deduction += att.compute_deduction(
-                self.daily_rate, self.hourly_rate
-            )
+        breakdown = {}
 
-        return total_deduction
+        day_count = (end_date - start_date).days + 1
+        for i in range(day_count):
+            day = start_date + timedelta(days=i)
+
+            # skip weekends & holidays
+            if day.weekday() >= 5 or (holidays and day in holidays):
+                continue
+
+            att = attendance_map.get(day)
+
+            if not att or not att.time_in:  # completely absent
+                deduction = self.daily_rate
+                reason = "Absent"
+            else:
+                deduction = att.compute_deduction(self.daily_rate, self.hourly_rate)
+                reason = att.get_deduction_reason()
+
+            if deduction > 0:
+                total_deduction += deduction
+                breakdown[str(day)] = {
+                    "deduction": str(deduction.quantize(Decimal("0.01"))),
+                    "reason": reason,
+                }
+
+        return total_deduction, breakdown
 
     def save(self, *args, **kwargs):
-        # ✅ Auto-compute rates from basic salary
+        # ✅ Auto-compute rates
         if self.basic_salary > 0:
             self.daily_rate = self.basic_salary / Decimal(26)
             self.hourly_rate = self.daily_rate / Decimal(8)
 
-        # ✅ Attendance deductions
-        self.attendance_deduction = self.compute_attendance_deduction()
+        # ✅ Attendance deductions with breakdown
+        self.attendance_deduction, breakdown = self.compute_attendance_deduction()
 
-        # ✅ Overtime pay
+        # requires a JSONField in Payroll model
+        if hasattr(self, "attendance_breakdown"):
+            self.attendance_breakdown = breakdown
+
+        # ✅ Overtime
         self.overtime_pay = self.compute_overtime()
 
         # ✅ Total deductions

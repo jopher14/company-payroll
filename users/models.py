@@ -267,6 +267,27 @@ class Attendance(models.Model):
 
         return deduction
 
+    def get_deduction_reason(self) -> str:
+        """
+        Return a human-readable explanation for the deduction.
+        """
+        if self.status == "Absent":
+            return "Absent"
+
+        if self.status == "Half Day":
+            return "Half Day"
+
+        reasons = []
+        if self.late_hours > 0:
+            minutes = int(self.late_hours * 60)
+            reasons.append(f"Late by {minutes} min")
+
+        if self.undertime_hours > 0:
+            minutes = int(self.undertime_hours * 60)
+            reasons.append(f"Undertime by {minutes} min")
+
+        return ", ".join(reasons) if reasons else "On time"
+
 
 class Day(models.Model):
     DAYS = [

@@ -1,8 +1,8 @@
-from typing import Optional
+from holidays.countries import Philippines
 from typing import cast
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Payroll
-from users.models import User, Overtime, Attendance
+from users.models import User
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest
 from django.contrib import messages
@@ -12,14 +12,8 @@ from datetime import datetime
 from payroll.utils import (
     compute_daily_rate,
     compute_hourly_rate,
-    compute_ordinary_ot,
-    compute_restday_ot,
-    compute_special_holiday_ot,
-    compute_special_holiday_restday_ot,
-    compute_regular_holiday_ot,
-    compute_regular_holiday_restday_ot,
-    compute_double_holiday_ot,
-    compute_double_holiday_restday_ot,
+    compute_total_attendance_deduction,
+    compute_employee_overtime,
 )
 
 
@@ -100,80 +94,22 @@ def get_period_range(period: str):
     return 16, 31
 
 
-def compute_attendance_deductions(
-    emp: User,
-    year: int,
-    month: int,
-    start_day: int,
-    end_day: int,
-    daily_rate: Optional[Decimal] = None,
-    hourly_rate: Optional[Decimal] = None
-) -> Decimal:
-    """Aggregate all attendance-based deductions for a given employee + period."""
-    logs = Attendance.objects.filter(
-        employee=emp,
-        date__year=year,
-        date__month=month,
-        date__day__gte=start_day,
-        date__day__lte=end_day,
-    )
-
-    # Sum deductions, passing the rates to each attendance record
-    return sum(
-        (
-            att.compute_deduction(
-                daily_rate=daily_rate or Decimal("0.00"),
-                hourly_rate=hourly_rate or Decimal("0.00")
-            )
-            for att in logs
-        ),
-        Decimal("0.00")
-    )
-
-
-def compute_overtime_pay(emp: User, year: int, month: int, start_day: int, end_day: int,
-                         hourly_rate: Decimal) -> Decimal:
-    """Compute total overtime pay for a given employee + period."""
-    logs = Overtime.objects.filter(
-        employee=emp,
-        date__year=year,
-        date__month=month,
-        date__day__gte=start_day,
-        date__day__lte=end_day,
-        status="approved",
-    )
-
-    mapping = {
-        "ordinary": compute_ordinary_ot,
-        "restday": compute_restday_ot,
-        "special_holiday": compute_special_holiday_ot,
-        "special_holiday_restday": compute_special_holiday_restday_ot,
-        "regular_holiday": compute_regular_holiday_ot,
-        "regular_holiday_restday": compute_regular_holiday_restday_ot,
-        "double_holiday": compute_double_holiday_ot,
-        "double_holiday_restday": compute_double_holiday_restday_ot,
-    }
-
-    total = Decimal("0.00")
-    for ot in logs:
-        func = mapping.get(ot.overtime_type)
-        if func:
-            total += func(hourly_rate, ot.hours or Decimal("0.00"))
-    return total
-
-
 @login_required
 def generate_payroll(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
+
     if user.role != "human_resources":
         messages.error(request, "You are not authorized to generate payroll.")
         return redirect("payroll:payroll_list")
 
     today = datetime.now()
-    month, year = today.month, today.year
+    year, month = today.year, today.month
+
+    # ✅ Prepare Philippine holidays for the current year
+    ph_holidays = set(Philippines(years=[year]).keys())
 
     if request.method == "POST":
-        period = request.POST.get("period") or ""
+        period = request.POST.get("period", "")
         if period not in ["first_half", "second_half"]:
             messages.error(request, "Invalid pay period selected.")
             return redirect("payroll:generate_payroll")
@@ -181,6 +117,7 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
         start_day, end_day = get_period_range(period)
         employees = User.objects.filter(role__in=["employee", "supervisor", "manager"])
         skipped = []
+        payroll_data = []
 
         for emp in employees:
             salary = emp.salary or Decimal("0.00")
@@ -193,31 +130,39 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
             half_salary = salary / 2
             half_allowances = allowances / 2
 
-            # ✅ Gov deductions (halved)
+            # ✅ Gov deductions (halved for cutoff)
             sss = compute_sss(salary) / 2
             philhealth = compute_philhealth(salary) / 2
             pagibig = compute_pagibig(salary) / 2
 
-            # ✅ Attendance deductions
-            attendance_deduction = compute_attendance_deductions(
-                emp, year, month, start_day, end_day,
+            # ✅ Attendance deductions + breakdown
+            attendance_deduction, attendance_breakdown = compute_total_attendance_deduction(
+                emp, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
             )
 
-            # ✅ Overtime
-            overtime_pay = compute_overtime_pay(emp, year, month, start_day, end_day, hourly_rate)
+            # ✅ Holiday pay: pay if present on a holiday
+            holiday_pay = Decimal("0.00")
+            for log in attendance_breakdown:
+                log_date = datetime.strptime(log["date"], "%Y-%m-%d").date()
+                if log_date in ph_holidays and "Absent" not in log["reason"]:
+                    holiday_pay += daily_rate
 
-            # ✅ Tax
-            tax = compute_withholding_tax(salary, overtime_pay) / 2
+            # ✅ Overtime (fixed: now uses wrapper, not raw compute_overtime_pay)
+            overtime_pay = compute_employee_overtime(emp, year, month, start_day, end_day, hourly_rate)
+
+            # ✅ Tax (with holiday + OT included)
+            tax = compute_withholding_tax(salary, overtime_pay + holiday_pay) / 2
 
             # ✅ Totals
             total_deductions = sss + philhealth + pagibig + tax + attendance_deduction
-            net_pay = half_salary + half_allowances + overtime_pay - total_deductions
+            net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
 
             # ✅ Prevent duplicates
             if Payroll.objects.filter(employee=emp, month=month, year=year, period=period).exists():
                 skipped.append(emp.get_full_name() or emp.username)
                 continue
 
+            # Create payroll record
             Payroll.objects.create(
                 employee=emp,
                 month=month,
@@ -226,26 +171,37 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
                 basic_salary=half_salary,
                 allowances=half_allowances,
                 overtime_pay=overtime_pay,
-                holiday_pay=Decimal("0.00"),  # extend later if needed
+                holiday_pay=holiday_pay,
                 sss=sss,
                 philhealth=philhealth,
                 pagibig=pagibig,
                 withholding_tax=tax,
-                attendance_deduction=attendance_deduction,
-                total_deductions=total_deductions,
-                net_pay=net_pay,
                 daily_rate=daily_rate,
                 hourly_rate=hourly_rate,
             )
 
-        # ✅ Feedback
+            # Add breakdown for template display
+            payroll_data.append({
+                "employee": emp.get_full_name(),
+                "attendance_deduction": attendance_deduction,
+                "attendance_breakdown": attendance_breakdown,
+                "overtime_pay": overtime_pay,
+                "holiday_pay": holiday_pay,
+                "net_pay": net_pay,
+            })
+
+        # ✅ Feedback for skipped employees
         if skipped:
             skipped_str = ", ".join(skipped[:5])
             if len(skipped) > 5:
                 skipped_str += f" ... and {len(skipped)-5} more"
             messages.warning(request, f"Some payrolls already exist and were skipped: {skipped_str}")
 
-        messages.success(request, f"Payroll generated for {today.strftime('%B %Y')} ({period.replace('_', ' ').title()})!")
+        messages.success(
+            request,
+            f"Payroll generated for {today.strftime('%B %Y')} ({period.replace('_', ' ').title()})!"
+        )
+
         return redirect("payroll:payroll_list")
 
     return render(request, "payroll/generate_form.html")

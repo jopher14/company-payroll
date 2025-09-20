@@ -1,5 +1,10 @@
+import calendar
+from collections import defaultdict
+from calendar import monthrange
 from decimal import Decimal
-from users.models import Attendance
+from users.models import Attendance, Overtime
+from typing import Optional
+from datetime import date, datetime, timedelta
 
 
 def compute_sss(salary: Decimal) -> Decimal:
@@ -52,11 +57,35 @@ def compute_hourly_rate(salary: Decimal, workdays_per_month: int = 22, hours_per
     return (daily_rate / Decimal(hours_per_day)).quantize(Decimal("0.01"))
 
 
-# ✅ Overtime Computations (PH rules)
+def compute_overtime_hours(employee, year: int, month: int, start_day: int, end_day: int) -> dict[str, Decimal]:
+    """
+    Fetch total approved overtime hours grouped by OT type for an employee in a cutoff period.
+    Returns a dict like: {"ordinary": 5, "restday": 2, "special_holiday": 3}
+    """
+    last_day = monthrange(year, month)[1]
+    start_date = date(year, month, min(start_day, last_day))
+    end_date = date(year, month, min(end_day, last_day))
+
+    overtime_logs = Overtime.objects.filter(
+        employee=employee,
+        date__range=(start_date, end_date),
+        status="approved",
+    )
+
+    hours_by_type: dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
+    for ot in overtime_logs:
+        ot_type = getattr(ot, "ot_type", "ordinary")  # default if no field
+        hours_by_type[ot_type] += Decimal(ot.hours or 0)
+
+    return hours_by_type
+
+
 def compute_overtime_pay(hourly_rate: Decimal, hours: Decimal, multiplier: Decimal) -> Decimal:
-    return (hourly_rate * hours * multiplier).quantize(Decimal("0.01"))
+    """Compute OT pay given hours, rate, and multiplier."""
+    return (hours * hourly_rate * multiplier).quantize(Decimal("0.01"))
 
 
+# 💡 Specialized computations
 def compute_ordinary_ot(hourly_rate: Decimal, hours: Decimal) -> Decimal:
     return compute_overtime_pay(hourly_rate, hours, Decimal("1.25"))
 
@@ -89,25 +118,120 @@ def compute_double_holiday_restday_ot(hourly_rate: Decimal, hours: Decimal) -> D
     return compute_overtime_pay(hourly_rate, hours, Decimal("5.07"))
 
 
-def compute_total_attendance_deduction(employee, year: int, month: int, start_day: int, end_day: int,
-                                       daily_rate: Decimal, hourly_rate: Decimal) -> Decimal:
+def compute_employee_overtime(
+    employee,
+    year: int,
+    month: int,
+    start_day: int,
+    end_day: int,
+    hourly_rate: Decimal,
+) -> Decimal:
+    """
+    Compute total overtime pay for an employee in a cutoff period.
+    Uses the OT type to apply correct multipliers.
+    """
+    hours_by_type = compute_overtime_hours(employee, year, month, start_day, end_day)
+
+    total_pay = Decimal("0.00")
+
+    total_pay += compute_ordinary_ot(hourly_rate, hours_by_type.get("ordinary", Decimal("0.00")))
+    total_pay += compute_restday_ot(hourly_rate, hours_by_type.get("restday", Decimal("0.00")))
+    total_pay += compute_special_holiday_ot(hourly_rate, hours_by_type.get("special_holiday", Decimal("0.00")))
+    total_pay += compute_special_holiday_restday_ot(hourly_rate, hours_by_type.get("special_holiday_restday", Decimal("0.00")))
+    total_pay += compute_regular_holiday_ot(hourly_rate, hours_by_type.get("regular_holiday", Decimal("0.00")))
+    total_pay += compute_regular_holiday_restday_ot(hourly_rate, hours_by_type.get("regular_holiday_restday", Decimal("0.00")))
+    total_pay += compute_double_holiday_ot(hourly_rate, hours_by_type.get("double_holiday", Decimal("0.00")))
+    total_pay += compute_double_holiday_restday_ot(hourly_rate, hours_by_type.get("double_holiday_restday", Decimal("0.00")))
+
+    return total_pay
+
+
+def compute_total_attendance_deduction(
+    employee,
+    year: int,
+    month: int,
+    start_day: int,
+    end_day: int,
+    daily_rate: Decimal,
+    hourly_rate: Decimal,
+    holidays: Optional[set] = None,
+) -> tuple[Decimal, list[dict]]:
     """
     Compute total attendance deductions for a given employee in a cutoff period.
-    Includes:
-    - Absent → 1 daily rate
-    - Half Day → 0.5 daily rate
-    - Late → prorated hourly rate
+    Rules:
+      - Absent → 1 daily rate
+      - Half Day → 0.5 daily rate
+      - Late / Undertime → prorated per minute
+      - Skips weekends & holidays
     """
-    attendance_logs = Attendance.objects.filter(
-        employee=employee,
-        date__year=year,
-        date__month=month,
-        date__day__gte=start_day,
-        date__day__lte=end_day,
-    )
+    # ✅ Clamp cutoff to valid month days
+    last_day = calendar.monthrange(year, month)[1]
+    start_day, end_day = min(start_day, last_day), min(end_day, last_day)
+
+    start_date, end_date = date(year, month, start_day), date(year, month, end_day)
 
     total_deduction = Decimal("0.00")
-    for att in attendance_logs:
-        total_deduction += att.compute_deduction(daily_rate, hourly_rate)
+    breakdown: list[dict] = []
 
-    return total_deduction
+    # ✅ Derived rates
+    hourly_rate = hourly_rate or (daily_rate / Decimal("8")) if daily_rate > 0 else Decimal("0")
+    per_minute_rate = hourly_rate / Decimal(60) if hourly_rate > 0 else Decimal("0")
+
+    # ✅ Prefetch attendance
+    attendances = {
+        att.date: att
+        for att in Attendance.objects.filter(employee=employee, date__range=(start_date, end_date))
+    }
+
+    def add_breakdown(day, reasons, amount):
+        """Helper to append breakdown logs."""
+        breakdown.append({
+            "date": day.isoformat(),
+            "reason": ", ".join(reasons),
+            "deduction": str(amount.quantize(Decimal("0.01")))
+        })
+
+    # ✅ Loop through cutoff days
+    for i in range((end_date - start_date).days + 1):
+        day = start_date + timedelta(days=i)
+
+        # skip weekends & holidays
+        if day.weekday() >= 5 or (holidays and day in holidays):
+            continue
+
+        att = attendances.get(day)
+        day_total, reasons = Decimal("0.00"), []
+
+        if not att or not att.time_in:
+            day_total, reasons = daily_rate, ["Absent"]
+        else:
+            # Half day / missing timeout
+            if getattr(att, "half_day", False) or not att.time_out:
+                day_total += daily_rate / 2
+                reasons.append("Half-day")
+
+            # Late
+            if att.schedule and att.schedule.start_time and att.time_in:
+                scheduled_start = datetime.combine(att.date, att.schedule.start_time)
+                actual_start = datetime.combine(att.date, att.time_in)
+                if actual_start > scheduled_start:
+                    minutes_late = (actual_start - scheduled_start).seconds // 60
+                    if minutes_late > 0:
+                        day_total += per_minute_rate * Decimal(minutes_late)
+                        reasons.append(f"Late {minutes_late}m")
+
+            # Undertime
+            if att.schedule and att.schedule.end_time and att.time_out:
+                scheduled_out = datetime.combine(att.date, att.schedule.end_time)
+                actual_out = datetime.combine(att.date, att.time_out)
+                if actual_out < scheduled_out:
+                    minutes_undertime = (scheduled_out - actual_out).seconds // 60
+                    if minutes_undertime > 0:
+                        day_total += per_minute_rate * Decimal(minutes_undertime)
+                        reasons.append(f"Undertime {minutes_undertime}m")
+
+        if day_total > 0:
+            add_breakdown(day, reasons, day_total)
+            total_deduction += day_total
+
+    return total_deduction.quantize(Decimal("0.01")), breakdown
