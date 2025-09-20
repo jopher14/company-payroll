@@ -8,5 +8,10 @@ urlpatterns = [
     path(route="my-payslips/", view=views.my_payslips, name="my_payslips"),
     path(route="generate/", view=views.generate_payroll, name="generate_payroll"),
     path(route='payslip/<int:pk>/', view=views.view_payslip, name='view_payslip'),
+    path(
+        route="attendance/download/<int:emp_id>/<int:year>/<int:month>/<str:period>/",
+        view=views.download_attendance_breakdown,
+        name="attendance_download"
+    ),
 
 ]

@@ -56,7 +56,14 @@
                                             <td>{{ payroll.month }}/{{ payroll.year }}</td>
                                             <td>{{ payroll.get_period_display }}</td>
                                             <td>
-                                                <a href="{% url 'payroll:view_payslip' payroll.id %}" class="btn btn-sm btn-primary">View Payslip</a>
+                                                <a href="{% url 'payroll:view_payslip' payroll.id %}" 
+                                                class="btn btn-sm btn-primary">View Payslip</a>
+                                                {% if request.user.role == "human_resources" %}
+                                                    <a href="{% url 'payroll:attendance_download' payroll.employee.id payroll.year payroll.month payroll.period %}" 
+                                                    class="btn btn-sm btn-outline-success">
+                                                    Download Attendance CSV
+                                                    </a>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                         {% endif %}

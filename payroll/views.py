@@ -9,6 +9,7 @@ from django.contrib import messages
 from .utils import compute_sss, compute_philhealth, compute_pagibig, compute_withholding_tax
 from decimal import Decimal
 from datetime import datetime
+import csv
 from payroll.utils import (
     compute_daily_rate,
     compute_hourly_rate,
@@ -205,3 +206,64 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
         return redirect("payroll:payroll_list")
 
     return render(request, "payroll/generate_form.html")
+
+
+@login_required
+def download_attendance_breakdown(request: HttpRequest, emp_id: int, year: int, month: int, period: str) -> HttpResponse:
+    user = cast(User, request.user)
+
+    # ✅ Restrict to HR only
+    if user.role != "human_resources":
+        messages.error(request, "You are not authorized to download this attendance breakdown.")
+        return redirect("payroll:payroll_list")
+
+    employee = get_object_or_404(User, pk=emp_id)
+
+    # Period range
+    start_day, end_day = get_period_range(period)
+
+    # Recompute rates
+    salary = employee.salary or Decimal("0.00")
+    daily_rate = compute_daily_rate(salary)
+    hourly_rate = compute_hourly_rate(salary)
+
+    # Get holidays
+    ph_holidays = set(Philippines(years=[year]).keys())
+
+    # ✅ Compute breakdown
+    _, attendance_breakdown = compute_total_attendance_deduction(
+        employee, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
+    )
+
+    # ✅ Clean employee name + role for filename
+    emp_name = employee.get_full_name() or employee.username
+    emp_role = employee.get_role_display()
+    safe_name = emp_name.replace(" ", "_")
+    safe_role = emp_role.replace(" ", "_")
+
+    filename = f"attendance_breakdown_{safe_name}_{safe_role}_{year}_{month}_{period}.csv"
+
+    # ✅ Prepare CSV response
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow(["Date", "Status/Reason", "Reviewed By"])
+
+    for row in attendance_breakdown:
+        reason = row.get("reason", "")
+
+        # Default: no reviewer
+        reviewed_by = ""
+
+        # ✅ If leave or halfday → require review
+        if "Leave" in reason or "Halfday" in reason:
+            reviewed_by = "HR Manager"  # You can replace with actual reviewer if you store it
+
+        writer.writerow([
+            row.get("date", ""),
+            reason,
+            reviewed_by,
+        ])
+
+    return response
