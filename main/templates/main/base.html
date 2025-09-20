@@ -119,22 +119,26 @@
         </div>
     </div>
 
+    <form id="autoLogoutForm" method="post" action="{% url 'users:logout' %}" style="display:none;">
+        {% csrf_token %}
+    </form>
+
 <script>
 (function() {
-
-    // --- INACTIVITY LOGOUT LOGIC (updated) ---
     const inactivityModalEl = document.getElementById("inactivityModal");
     const inactivityCountdownEl = document.getElementById("inactivityCountdown");
     const stayLoggedInBtn = document.getElementById("stayLoggedInBtn");
+    const autoLogoutForm = document.getElementById("autoLogoutForm");
+
     let inactivityTimer, inactivityCountdown = 60, inactivityInterval;
     const inactivityModal = new bootstrap.Modal(inactivityModalEl);
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
         clearInterval(inactivityInterval);
-        inactivityCountdown = 60; // 1 minute countdown after warning
+        inactivityCountdown = 60; // reset countdown
         inactivityCountdownEl.textContent = inactivityCountdown;
-        inactivityTimer = setTimeout(showInactivityWarning, 2 * 60 * 1000); // 2 mins of inactivity
+        inactivityTimer = setTimeout(showInactivityWarning, 2 * 60 * 1000); // 2 mins inactivity
     }
 
     function showInactivityWarning() {
@@ -144,7 +148,7 @@
             inactivityCountdownEl.textContent = inactivityCountdown;
             if (inactivityCountdown <= 0) {
                 clearInterval(inactivityInterval);
-                logoutForm.submit();
+                autoLogoutForm.submit(); // ✅ logout when countdown hits 0
             }
         }, 1000);
     }
@@ -154,7 +158,7 @@
         resetInactivityTimer();
     });
 
-    // Reset timer on any user activity
+    // Reset timer on user activity
     ["click"].forEach(evt => {
         document.addEventListener(evt, resetInactivityTimer);
     });
