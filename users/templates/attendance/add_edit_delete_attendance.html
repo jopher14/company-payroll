@@ -1,0 +1,191 @@
+{% extends "main/base.html" %}
+
+{% block title %}Manage Attendance{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm p-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="text-primary">📝 Manage Attendance</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <!-- Back Button -->
+        <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center" 
+            data-bs-toggle="tooltip" data-bs-placement="top" title="Go back to attendance log">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+
+        <!-- Add Attendance Button -->
+        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center" 
+                data-bs-toggle="modal" data-bs-target="#attendanceModal" 
+                data-bs-toggle="tooltip" data-bs-placement="top" title="Add new attendance record">
+            <i class="bi bi-plus-lg me-1"></i> Add Attendance
+        </button>
+    </div>
+
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Employee</th>
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Half Day</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in attendance_list %}
+          <tr>
+            <td>{{ record.employee.get_full_name }}</td>
+            <td>{{ record.date }}</td>
+            <td>{% if record.time_in %}{{ record.time_in|time:"H:i" }}{% else %}-{% endif %}</td>
+            <td>{% if record.time_out %}{{ record.time_out|time:"H:i" }}{% else %}-{% endif %}</td>
+            <td>{% if record.half_day %}✅ Yes{% else %}❌ No{% endif %}</td>
+            <td>{{ record.status }}</td>
+            <td class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary edit-btn"
+                      data-id="{{ record.id }}"
+                      data-employee="{{ record.employee.id }}"
+                      data-name="{{ record.employee.get_full_name }}"
+                      data-date="{{ record.date }}"
+                      data-time-in="{% if record.time_in %}{{ record.time_in|time:'H:i' }}{% endif %}"
+                      data-time-out="{% if record.time_out %}{{ record.time_out|time:'H:i' }}{% endif %}"
+                      data-half-day="{% if record.half_day %}1{% else %}0{% endif %}"
+                      data-bs-toggle="modal" data-bs-target="#attendanceModal">
+                ✏️ Edit
+              </button>
+              <a href="{% url 'users:delete_attendance' record.id %}" class="btn btn-sm btn-outline-danger"
+                 onclick="return confirm('Are you sure you want to delete this record?');">
+                🗑 Delete
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted">No attendance records yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="post" id="attendanceForm">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="attendanceModalLabel">Add Attendance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="attendance_id" id="attendance_id">
+
+          <!-- Employee -->
+          <div class="mb-3" id="employee-container">
+            <label class="form-label">Employee</label>
+            <select id="employee" name="employee" class="form-select" required>
+              <option value="">Select Employee</option>
+              {% for emp in employees %}
+                <option value="{{ emp.id }}">{{ emp.get_full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Date Picker -->
+          <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" id="date" name="date" class="form-control" required>
+          </div>
+
+          <!-- Time In / Out -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="time_in" class="form-label">Time In</label>
+              <input type="time" id="time_in" name="time_in" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label for="time_out" class="form-label">Time Out</label>
+              <input type="time" id="time_out" name="time_out" class="form-control">
+            </div>
+          </div>
+
+          <!-- Half Day -->
+          <div class="form-check mb-3">
+            <input type="checkbox" id="half_day" name="half_day" class="form-check-input">
+            <label for="half_day" class="form-check-label">Half Day</label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Attendance</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const editButtons = document.querySelectorAll('.edit-btn');
+  const modalTitle = document.getElementById('attendanceModalLabel');
+  const form = document.getElementById('attendanceForm');
+  const employeeContainer = document.getElementById('employee-container');
+
+  editButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.dataset.id;
+      const employeeId = this.dataset.employee;
+      const employeeName = this.dataset.name;
+      const date = this.dataset.date;
+      const timeIn = this.dataset.timeIn;
+      const timeOut = this.dataset.timeOut;
+      const halfDay = this.dataset.halfDay;
+
+      modalTitle.textContent = "Edit Attendance";
+      document.getElementById('attendance_id').value = id;
+
+      // Show employee as read-only
+      employeeContainer.innerHTML = `
+        <label class="form-label">Employee</label>
+        <div class="form-control" readonly>${employeeName}</div>
+        <input type="hidden" name="employee" value="${employeeId}">
+      `;
+
+      document.getElementById('date').value = date;
+      document.getElementById('time_in').value = timeIn;
+      document.getElementById('time_out').value = timeOut;
+      document.getElementById('half_day').checked = halfDay === "1";
+    });
+  });
+
+  const modalEl = document.getElementById('attendanceModal');
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    modalTitle.textContent = "Add Attendance";
+    form.reset();
+
+    // Restore employee dropdown
+    employeeContainer.innerHTML = `
+      <label class="form-label">Employee</label>
+      <select id="employee" name="employee" class="form-select" required>
+        <option value="">Select Employee</option>
+        {% for emp in employees %}
+          <option value="{{ emp.id }}">{{ emp.get_full_name }}</option>
+        {% endfor %}
+      </select>
+    `;
+
+    document.getElementById('attendance_id').value = "";
+  });
+});
+</script>
+{% endblock %}

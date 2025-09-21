@@ -41,6 +41,9 @@
               <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">
                 ➕ Create Announcement
               </a>
+              <a href="{% url 'users:manage_attendance' %}" class="btn btn-outline-dark">
+                ➕ Manually Log Attendance
+              </a>
             {% endif %}
 
             {% if user.role == "manager" %}

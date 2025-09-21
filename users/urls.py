@@ -28,6 +28,11 @@ urlpatterns = [
     path(route="add-schedule/", view=views.add_schedule, name="add_schedule"),
     path(route="edit-schedule/<int:pk>/", view=views.edit_schedule, name="edit_schedule"),
 
+    # Manually add edit delete log attendance
+    path(route="manage-attendance/", view=views.manage_attendance, name="manage_attendance"),
+    path(route="edit/<int:attendance_id>/", view=views.manage_attendance, name="edit_attendance"),
+    path(route="delete/<int:attendance_id>/", view=views.delete_attendance, name="delete_attendance"),
+
     # Employee
     path(route="leave/file/", view=views.file_leave, name="file_leave"),
     path(route="leave/my/", view=views.my_leaves, name="my_leaves"),
