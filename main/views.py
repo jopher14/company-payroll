@@ -7,7 +7,7 @@ from .forms import AnnouncementForm
 from .models import Announcement
 from users.models import Attendance, Leave, Schedule, EmployeeSchedule, ScheduleChangeRequest, Overtime
 from users.forms import User
-from datetime import timedelta
+from datetime import timedelta, datetime
 from calendar import monthrange
 from django.utils.timezone import localdate
 import holidays
@@ -117,20 +117,38 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
     # ✅ Attendance overrides
     for log in attendance_logs:
+        day_str = log.date.isoformat()
+
         if log.time_in and log.time_out:
-            events.append({
-                "title": "Present",
-                "start": log.date.isoformat(),
-                "color": "green",
-                "tooltip": "Present"
-            })
+            title = "Present"
+            tooltip = "Present"
+            color = "green"
+
+            # Check for Late
+            if log.schedule and log.schedule.time_in:
+                minutes_late = max(
+                    0,
+                    (
+                        datetime.combine(log.date, log.time_in) -
+                        datetime.combine(log.date, log.schedule.time_in)
+                    ).seconds // 60
+                )
+                if minutes_late > 0:
+                    title = "Late"
+                    tooltip = f"Late {minutes_late}m"
+                    color = "red"
+
         else:
-            events.append({
-                "title": "Half-Day",
-                "start": log.date.isoformat(),
-                "color": "orange",
-                "tooltip": "Half-Day"
-            })
+            title = "Half-Day"
+            tooltip = "Half-Day"
+            color = "orange"
+
+        events.append({
+            "title": title,
+            "start": day_str,
+            "color": color,
+            "tooltip": tooltip
+        })
 
     # ✅ Leave events
     for leave in leaves:

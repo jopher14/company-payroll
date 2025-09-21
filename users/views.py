@@ -950,22 +950,29 @@ def manage_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
 
     if request.method == "POST":
         employee_id = request.POST.get("employee")
-        date = request.POST.get("date")
-        time_in = request.POST.get("time_in") or None
-        time_out = request.POST.get("time_out") or None
+        date_str = request.POST.get("date")
+        time_in_str = request.POST.get("time_in")
+        time_out_str = request.POST.get("time_out")
         half_day = request.POST.get("half_day") == "on"
 
-        if not employee_id or not date:
+        if not employee_id or not date_str:
             messages.error(request, "Employee and Date are required.")
         else:
             employee = get_object_or_404(User, pk=employee_id)
 
+            # Convert date string to date object
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+            # Convert time strings to time objects, if provided
+            time_in_obj = datetime.strptime(time_in_str, "%H:%M").time() if time_in_str else None
+            time_out_obj = datetime.strptime(time_out_str, "%H:%M").time() if time_out_str else None
+
             if attendance:
                 # Edit existing record
                 attendance.employee = employee
-                attendance.date = date
-                attendance.time_in = time_in
-                attendance.time_out = time_out
+                attendance.date = date_obj
+                attendance.time_in = time_in_obj
+                attendance.time_out = time_out_obj
                 attendance.half_day = half_day
                 attendance.save()
                 messages.success(request, "Attendance updated successfully.")
@@ -973,9 +980,9 @@ def manage_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
                 # Create new record
                 Attendance.objects.create(
                     employee=employee,
-                    date=date,
-                    time_in=time_in,
-                    time_out=time_out,
+                    date=date_obj,
+                    time_in=time_in_obj,
+                    time_out=time_out_obj,
                     half_day=half_day
                 )
                 messages.success(request, "Attendance added successfully.")
