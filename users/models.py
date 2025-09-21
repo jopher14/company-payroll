@@ -222,7 +222,7 @@ class Attendance(models.Model):
         if not self.schedule or not self.time_in:
             return Decimal("0.00")
 
-        scheduled_in = datetime.combine(self.date, self.schedule.start_time)
+        scheduled_in = datetime.combine(self.date, self.schedule.time_in)
         actual_in = datetime.combine(self.date, self.time_in)
 
         if actual_in <= scheduled_in:
@@ -237,7 +237,7 @@ class Attendance(models.Model):
         if not self.schedule or not self.time_out:
             return Decimal("0.00")
 
-        scheduled_out = datetime.combine(self.date, self.schedule.end_time)
+        scheduled_out = datetime.combine(self.date, self.schedule.time_out)
         actual_out = datetime.combine(self.date, self.time_out)
 
         if actual_out >= scheduled_out:

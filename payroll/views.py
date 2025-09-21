@@ -2,6 +2,7 @@ from holidays.countries import Philippines
 from typing import cast
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Payroll
+from django.db import transaction
 from users.models import User
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest
@@ -106,7 +107,7 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
     today = datetime.now()
     year, month = today.year, today.month
 
-    # ✅ Prepare Philippine holidays for the current year
+    # Prepare Philippine holidays for the current year
     ph_holidays = set(Philippines(years=[year]).keys())
 
     if request.method == "POST":
@@ -120,78 +121,79 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
         skipped = []
         payroll_data = []
 
-        for emp in employees:
-            salary = emp.salary or Decimal("0.00")
-            allowances = emp.allowances or (salary * Decimal("0.30"))
+        with transaction.atomic():
+            for emp in employees:
+                salary = emp.salary or Decimal("0.00")
+                allowances = emp.allowances or (salary * Decimal("0.30"))
 
-            daily_rate = compute_daily_rate(salary)
-            hourly_rate = compute_hourly_rate(salary)
+                daily_rate = compute_daily_rate(salary)
+                hourly_rate = compute_hourly_rate(salary)
 
-            # ✅ Salary components
-            half_salary = salary / 2
-            half_allowances = allowances / 2
+                # Salary components for cutoff
+                half_salary = salary / 2
+                half_allowances = allowances / 2
 
-            # ✅ Gov deductions (halved for cutoff)
-            sss = compute_sss(salary) / 2
-            philhealth = compute_philhealth(salary) / 2
-            pagibig = compute_pagibig(salary) / 2
+                # Government deductions (halved for cutoff)
+                sss = compute_sss(salary) / 2
+                philhealth = compute_philhealth(salary) / 2
+                pagibig = compute_pagibig(salary) / 2
 
-            # ✅ Attendance deductions + breakdown
-            attendance_deduction, attendance_breakdown = compute_total_attendance_deduction(
-                emp, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
-            )
+                # Attendance deductions + breakdown
+                attendance_deduction, attendance_breakdown = compute_total_attendance_deduction(
+                    emp, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
+                )
 
-            # ✅ Holiday pay: pay if present on a holiday
-            holiday_pay = Decimal("0.00")
-            for log in attendance_breakdown:
-                log_date = datetime.strptime(log["date"], "%Y-%m-%d").date()
-                if log_date in ph_holidays and "Absent" not in log["reason"]:
-                    holiday_pay += daily_rate
+                # Holiday pay: pay if present on a holiday
+                holiday_pay = Decimal("0.00")
+                for log in attendance_breakdown:
+                    log_date = datetime.strptime(log["date"], "%Y-%m-%d").date()
+                    if log_date in ph_holidays and "Absent" not in log["reason"]:
+                        holiday_pay += daily_rate
 
-            # ✅ Overtime (fixed: now uses wrapper, not raw compute_overtime_pay)
-            overtime_pay = compute_employee_overtime(emp, year, month, start_day, end_day, hourly_rate)
+                # Overtime pay
+                overtime_pay = compute_employee_overtime(emp, year, month, start_day, end_day, hourly_rate)
 
-            # ✅ Tax (with holiday + OT included)
-            tax = compute_withholding_tax(salary, overtime_pay + holiday_pay) / 2
+                # Tax including overtime and holiday pay
+                tax = compute_withholding_tax(salary, overtime_pay + holiday_pay) / 2
 
-            # ✅ Totals
-            total_deductions = sss + philhealth + pagibig + tax + attendance_deduction
-            net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
+                # Total deductions and net pay
+                total_deductions = sss + philhealth + pagibig + tax + attendance_deduction
+                net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
 
-            # ✅ Prevent duplicates
-            if Payroll.objects.filter(employee=emp, month=month, year=year, period=period).exists():
-                skipped.append(emp.get_full_name() or emp.username)
-                continue
+                # Skip if payroll already exists
+                if Payroll.objects.filter(employee=emp, month=month, year=year, period=period).exists():
+                    skipped.append(emp.get_full_name() or emp.username)
+                    continue
 
-            # Create payroll record
-            Payroll.objects.create(
-                employee=emp,
-                month=month,
-                year=year,
-                period=period,
-                basic_salary=half_salary,
-                allowances=half_allowances,
-                overtime_pay=overtime_pay,
-                holiday_pay=holiday_pay,
-                sss=sss,
-                philhealth=philhealth,
-                pagibig=pagibig,
-                withholding_tax=tax,
-                daily_rate=daily_rate,
-                hourly_rate=hourly_rate,
-            )
+                # Create payroll record
+                Payroll.objects.create(
+                    employee=emp,
+                    month=month,
+                    year=year,
+                    period=period,
+                    basic_salary=half_salary,
+                    allowances=half_allowances,
+                    overtime_pay=overtime_pay,
+                    holiday_pay=holiday_pay,
+                    sss=sss,
+                    philhealth=philhealth,
+                    pagibig=pagibig,
+                    withholding_tax=tax,
+                    daily_rate=daily_rate,
+                    hourly_rate=hourly_rate,
+                )
 
-            # Add breakdown for template display
-            payroll_data.append({
-                "employee": emp.get_full_name(),
-                "attendance_deduction": attendance_deduction,
-                "attendance_breakdown": attendance_breakdown,
-                "overtime_pay": overtime_pay,
-                "holiday_pay": holiday_pay,
-                "net_pay": net_pay,
-            })
+                # Add breakdown for template display
+                payroll_data.append({
+                    "employee": emp.get_full_name(),
+                    "attendance_deduction": attendance_deduction,
+                    "attendance_breakdown": attendance_breakdown,
+                    "overtime_pay": overtime_pay,
+                    "holiday_pay": holiday_pay,
+                    "net_pay": net_pay,
+                })
 
-        # ✅ Feedback for skipped employees
+        # Feedback for skipped employees
         if skipped:
             skipped_str = ", ".join(skipped[:5])
             if len(skipped) > 5:
@@ -202,7 +204,6 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
             request,
             f"Payroll generated for {today.strftime('%B %Y')} ({period.replace('_', ' ').title()})!"
         )
-
         return redirect("payroll:payroll_list")
 
     return render(request, "payroll/generate_form.html")

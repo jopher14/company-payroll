@@ -1,10 +1,9 @@
-import calendar
 from collections import defaultdict
 from calendar import monthrange
 from decimal import Decimal
 from users.models import Attendance, Overtime
 from typing import Optional
-from datetime import date, datetime, timedelta
+from datetime import date
 
 
 def compute_sss(salary: Decimal) -> Decimal:
@@ -164,20 +163,22 @@ def compute_total_attendance_deduction(
       - Late / Undertime → prorated per minute
       - Skips weekends & holidays
     """
-    # ✅ Clamp cutoff to valid month days
+    import calendar
+    from datetime import date, datetime, timedelta
+
+    # Clamp cutoff to valid month days
     last_day = calendar.monthrange(year, month)[1]
     start_day, end_day = min(start_day, last_day), min(end_day, last_day)
-
     start_date, end_date = date(year, month, start_day), date(year, month, end_day)
 
     total_deduction = Decimal("0.00")
     breakdown: list[dict] = []
 
-    # ✅ Derived rates
+    # Derived rates
     hourly_rate = hourly_rate or (daily_rate / Decimal("8")) if daily_rate > 0 else Decimal("0")
     per_minute_rate = hourly_rate / Decimal(60) if hourly_rate > 0 else Decimal("0")
 
-    # ✅ Prefetch attendance
+    # Prefetch attendance
     attendances = {
         att.date: att
         for att in Attendance.objects.filter(employee=employee, date__range=(start_date, end_date))
@@ -191,11 +192,11 @@ def compute_total_attendance_deduction(
             "deduction": str(amount.quantize(Decimal("0.01")))
         })
 
-    # ✅ Loop through cutoff days
+    # Loop through cutoff days
     for i in range((end_date - start_date).days + 1):
         day = start_date + timedelta(days=i)
 
-        # skip weekends & holidays
+        # Skip weekends & holidays
         if day.weekday() >= 5 or (holidays and day in holidays):
             continue
 
@@ -203,32 +204,35 @@ def compute_total_attendance_deduction(
         day_total, reasons = Decimal("0.00"), []
 
         if not att or not att.time_in:
+            # No attendance record or missing time_in → Absent
             day_total, reasons = daily_rate, ["Absent"]
         else:
-            # Half day / missing timeout
+            # Half day / missing time_out
             if getattr(att, "half_day", False) or not att.time_out:
                 day_total += daily_rate / 2
                 reasons.append("Half-day")
 
-            # Late
-            if att.schedule and att.schedule.start_time and att.time_in:
-                scheduled_start = datetime.combine(att.date, att.schedule.start_time)
-                actual_start = datetime.combine(att.date, att.time_in)
-                if actual_start > scheduled_start:
-                    minutes_late = (actual_start - scheduled_start).seconds // 60
-                    if minutes_late > 0:
-                        day_total += per_minute_rate * Decimal(minutes_late)
-                        reasons.append(f"Late {minutes_late}m")
+            # Late / Undertime
+            if att.schedule:
+                # Late
+                if att.schedule.time_in and att.time_in:
+                    scheduled_start = datetime.combine(att.date, att.schedule.time_in)
+                    actual_start = datetime.combine(att.date, att.time_in)
+                    if actual_start > scheduled_start:
+                        minutes_late = (actual_start - scheduled_start).seconds // 60
+                        if minutes_late > 0:
+                            day_total += per_minute_rate * Decimal(minutes_late)
+                            reasons.append(f"Late {minutes_late}m")
 
-            # Undertime
-            if att.schedule and att.schedule.end_time and att.time_out:
-                scheduled_out = datetime.combine(att.date, att.schedule.end_time)
-                actual_out = datetime.combine(att.date, att.time_out)
-                if actual_out < scheduled_out:
-                    minutes_undertime = (scheduled_out - actual_out).seconds // 60
-                    if minutes_undertime > 0:
-                        day_total += per_minute_rate * Decimal(minutes_undertime)
-                        reasons.append(f"Undertime {minutes_undertime}m")
+                # Undertime
+                if att.schedule.time_out and att.time_out:
+                    scheduled_out = datetime.combine(att.date, att.schedule.time_out)
+                    actual_out = datetime.combine(att.date, att.time_out)
+                    if actual_out < scheduled_out:
+                        minutes_undertime = (scheduled_out - actual_out).seconds // 60
+                        if minutes_undertime > 0:
+                            day_total += per_minute_rate * Decimal(minutes_undertime)
+                            reasons.append(f"Undertime {minutes_undertime}m")
 
         if day_total > 0:
             add_breakdown(day, reasons, day_total)
