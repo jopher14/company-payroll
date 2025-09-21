@@ -119,7 +119,20 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     for log in attendance_logs:
         day_str = log.date.isoformat()
 
-        if log.time_in and log.time_out:
+        # Check if there's an approved half-day leave on this date
+        half_day_leave = leaves.filter(
+            status=Leave.APPROVED,
+            leave_type=Leave.HALF_DAY,
+            start_date__lte=log.date,
+            end_date__gte=log.date
+        ).first()
+
+        if half_day_leave:
+            title = "Half-Day Leave"
+            tooltip = f"{log.employee.get_full_name()} - Half-Day Leave"
+            color = "orange"
+
+        elif log.time_in and log.time_out:
             title = "Present"
             tooltip = "Present"
             color = "green"
@@ -155,6 +168,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         days = (leave.end_date - leave.start_date).days + 1
         for n in range(days):
             current_date = leave.start_date + timedelta(days=n)
+            # Skip if an attendance log already exists
+            if current_date in {log.date for log in attendance_logs}:
+                continue
+
             if leave.leave_type == Leave.HALF_DAY:
                 title, color = "Half-Day Leave", "orange"
             else:
