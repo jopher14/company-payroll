@@ -3,7 +3,7 @@ from typing import cast
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Payroll
 from django.db import transaction
-from users.models import User
+from users.models import User, Attendance
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpRequest
 from django.contrib import messages
@@ -212,59 +212,49 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
 @login_required
 def download_attendance_breakdown(request: HttpRequest, emp_id: int, year: int, month: int, period: str) -> HttpResponse:
     user = cast(User, request.user)
-
-    # ✅ Restrict to HR only
-    if user.role != "human_resources":
-        messages.error(request, "You are not authorized to download this attendance breakdown.")
-        return redirect("payroll:payroll_list")
+    if user.role not in ["human_resources", "admin"] and user.id != emp_id:
+        return HttpResponse("Not authorized", status=403)
 
     employee = get_object_or_404(User, pk=emp_id)
 
-    # Period range
+    # ✅ Get cutoff date range
     start_day, end_day = get_period_range(period)
 
-    # Recompute rates
-    salary = employee.salary or Decimal("0.00")
-    daily_rate = compute_daily_rate(salary)
-    hourly_rate = compute_hourly_rate(salary)
-
-    # Get holidays
+    # ✅ Holidays for the year
     ph_holidays = set(Philippines(years=[year]).keys())
 
-    # ✅ Compute breakdown
-    _, attendance_breakdown = compute_total_attendance_deduction(
-        employee, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
+    # ✅ Compute attendance breakdown
+    _, breakdown = compute_total_attendance_deduction(
+        employee, year, month, start_day, end_day,
+        daily_rate=Decimal(employee.salary) / Decimal(22) if employee.salary else Decimal("0.00"),
+        hourly_rate=(Decimal(employee.salary) / Decimal(22) / Decimal(8)) if employee.salary else Decimal("0.00"),
+        holidays=ph_holidays,
     )
 
-    # ✅ Clean employee name + role for filename
-    emp_name = employee.get_full_name() or employee.username
-    emp_role = employee.get_role_display()
-    safe_name = emp_name.replace(" ", "_")
-    safe_role = emp_role.replace(" ", "_")
-
-    filename = f"attendance_breakdown_{safe_name}_{safe_role}_{year}_{month}_{period}.csv"
-
-    # ✅ Prepare CSV response
+    # 📄 Create CSV response
     response = HttpResponse(content_type="text/csv")
+    filename = f"attendance_breakdown_{employee.username}_{year}_{month}_{period}.csv"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     writer = csv.writer(response)
-    writer.writerow(["Date", "Status/Reason", "Reviewed By"])
+    writer.writerow(["Date", "Time In", "Time Out", "Reason"])  # ✅ removed Deduction
 
-    for row in attendance_breakdown:
-        reason = row.get("reason", "")
+    for entry in breakdown:  # ✅ iterate over list
+        log_date = datetime.strptime(entry["date"], "%Y-%m-%d").date()
+        reason = entry.get("reason", "")
 
-        # Default: no reviewer
-        reviewed_by = ""
+        # ✅ Mark holidays
+        if log_date in ph_holidays:
+            if reason:
+                reason = f"Holiday, {reason}"
+            else:
+                reason = "Holiday"
 
-        # ✅ If leave or halfday → require review
-        if "Leave" in reason or "Halfday" in reason:
-            reviewed_by = "HR Manager"  # You can replace with actual reviewer if you store it
+        # ✅ Fetch actual time in/out
+        att = Attendance.objects.filter(employee=employee, date=log_date).first()
+        time_in = att.time_in.strftime("%H:%M") if att and att.time_in else ""
+        time_out = att.time_out.strftime("%H:%M") if att and att.time_out else ""
 
-        writer.writerow([
-            row.get("date", ""),
-            reason,
-            reviewed_by,
-        ])
+        writer.writerow([log_date.isoformat(), time_in, time_out, reason])
 
     return response
