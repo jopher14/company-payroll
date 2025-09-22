@@ -146,3 +146,8 @@ LOGOUT_REDIRECT_URL = 'users:login'
 # 15 minutes of inactivity
 SESSION_COOKIE_AGE = 15 * 60
 SESSION_SAVE_EVERY_REQUEST = True
+
+
+from django.contrib.messages import constants as messages
+
+MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
