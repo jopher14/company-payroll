@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.templatetags.static import static
 from django.utils import timezone
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class User(AbstractUser):
@@ -203,32 +203,58 @@ class Attendance(models.Model):
     # ✅ Cached property to avoid multiple queries
     @property
     def schedule(self):
+        """
+        Return the employee's schedule for this attendance date.
+        Checks all schedules linked to the employee and matches by weekday.
+        """
         if not hasattr(self, "_schedule"):
-            self._schedule = Schedule.objects.filter(employee=self.employee).first()
+            # Convert Python weekday (0=Mon, 6=Sun) to DB weekday (0=Sun, 6=Sat)
+            py_weekday = self.date.weekday()        # 0=Mon ... 6=Sun
+            weekday = (py_weekday + 1) % 7          # shift so Sun=0, Mon=1, ... Sat=6
+
+            schedules = Schedule.objects.filter(employee=self.employee)
+
+            for sched in schedules:
+                if sched.days_of_week.filter(number=weekday).exists():
+                    self._schedule = sched
+                    break
+            else:
+                self._schedule = schedules.first()
+
         return self._schedule
 
     @property
     def status(self) -> str:
-        """Return attendance status (Present, Half Day, Absent)."""
-        if self.time_in and self.time_out:
-            return "Present"
+        """Return attendance status (Present, Late, Half Day, Absent)."""
+        if not self.time_in and not self.time_out:
+            return "Absent"
+
         if self.half_day or (self.time_in and not self.time_out):
             return "Half Day"
-        return "Absent"
+
+        # Both time_in & time_out exist
+        if self.late_hours > 0:
+            return "Late"
+
+        return "Present"
 
     @property
     def late_hours(self) -> Decimal:
-        """Return hours late as decimal (0.00 if on time or no schedule)."""
+        """Return hours late (0 if within 5 min grace)."""
         if not self.schedule or not self.time_in:
             return Decimal("0.00")
 
-        scheduled_in = datetime.combine(self.date, self.schedule.time_in)
+        sched_in = datetime.combine(self.date, self.schedule.time_in)
         actual_in = datetime.combine(self.date, self.time_in)
 
-        if actual_in <= scheduled_in:
+        grace = timedelta(minutes=5)
+
+        # ✅ If early or within grace, not late
+        if actual_in <= sched_in + grace:
             return Decimal("0.00")
 
-        late_minutes = (actual_in - scheduled_in).seconds / 60
+        # ✅ Round to full minutes to avoid microseconds/seconds noise
+        late_minutes = int((actual_in - sched_in).total_seconds() // 60)
         return Decimal(late_minutes) / Decimal(60)
 
     @property

@@ -119,7 +119,29 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     for log in attendance_logs:
         day_str = log.date.isoformat()
 
-        # Check if there's an approved half-day leave on this date
+        # Default from Attendance.status
+        status = log.status
+
+        if status == "Present":
+            title, color, tooltip = "Present", "green", "Present"
+        elif status == "Late":
+            minutes_late = 0
+            if log.time_in and log.schedule and log.schedule.time_in:
+                minutes_late = (
+                    datetime.combine(log.date, log.time_in) -
+                    datetime.combine(log.date, log.schedule.time_in)
+                ).seconds // 60
+            title, color, tooltip = "Late", "red", f"Late {minutes_late}m" if minutes_late else "Late"
+        elif status == "Half Day":
+            title, color, tooltip = "Half-Day", "orange", "Half-Day"
+        elif status == "Absent":
+            title, color, tooltip = "Absent", "red", "Absent"
+        elif status == "On Leave":
+            title, color, tooltip = "Leave", "blue", "On Leave"
+        else:
+            title, color, tooltip = status, "grey", status
+
+        # ✅ Override if approved half-day leave exists
         half_day_leave = leaves.filter(
             status=Leave.APPROVED,
             leave_type=Leave.HALF_DAY,
@@ -129,32 +151,8 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
         if half_day_leave:
             title = "Half-Day Leave"
+            color = "orange"
             tooltip = f"{log.employee.get_full_name()} - Half-Day Leave"
-            color = "orange"
-
-        elif log.time_in and log.time_out:
-            title = "Present"
-            tooltip = "Present"
-            color = "green"
-
-            # Check for Late
-            if log.schedule and log.schedule.time_in:
-                minutes_late = max(
-                    0,
-                    (
-                        datetime.combine(log.date, log.time_in) -
-                        datetime.combine(log.date, log.schedule.time_in)
-                    ).seconds // 60
-                )
-                if minutes_late > 0:
-                    title = "Late"
-                    tooltip = f"Late {minutes_late}m"
-                    color = "red"
-
-        else:
-            title = "Half-Day"
-            tooltip = "Half-Day"
-            color = "orange"
 
         events.append({
             "title": title,
