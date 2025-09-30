@@ -8,6 +8,20 @@
     </div>
   </div>
 
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert
+          {% if message.tags == 'error' %}alert-danger
+          {% elif message.tags == 'success' %}alert-success
+          {% elif message.tags == 'warning' %}alert-warning
+          {% else %}alert-info{% endif %}
+          alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <!-- Pending Requests -->
   <h5>Pending Requests</h5>
   <table class="table table-bordered table-striped">
@@ -28,9 +42,9 @@
           <td>{{ leave.end_date|date:"M d, Y" }}</td>
           <td>{{ leave.reason|default:"—" }}</td>
           <td><span class="badge bg-warning text-dark">Pending</span></td>
-          <td>
+          <td class="d-flex gap-2">
             <a href="{% url 'users:edit_leave' leave.id %}" class="btn btn-sm btn-primary">Edit</a>
-            <a href="{% url 'users:delete_leave' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
+            <a href="{% url 'users:delete_leaves' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
           </td>
         </tr>
         {% endif %}
@@ -82,6 +96,7 @@
       {% endfor %}
     </tbody>
   </table>
-<a href="{% url 'main:dashboard' %}" class="btn btn-secondary">Back</a>
+
+  <a href="{% url 'main:dashboard' %}" class="btn btn-secondary">Back</a>
 </div>
 {% endblock %}

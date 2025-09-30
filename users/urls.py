@@ -35,9 +35,9 @@ urlpatterns = [
 
     # Employee
     path(route="leave/file/", view=views.file_leave, name="file_leave"),
-    path(route="leave/my/", view=views.my_leaves, name="my_leaves"),
+    path(route="leave/my_leaves/", view=views.my_leaves, name="my_leaves"),
     path(route="leave/edit/<int:pk>/", view=views.edit_leave, name="edit_leave"),
-    path(route="leave/delete/<int:pk>/", view=views.delete_leave, name="delete_leave"),
+    path(route="leave/delete/<int:pk>/", view=views.delete_leave, name="delete_leaves"),
 
     # Supervisor
     path(route="leave/pending/", view=views.pending_leaves, name="pending_leaves"),

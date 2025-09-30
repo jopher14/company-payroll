@@ -1,0 +1,91 @@
+{% extends "main/base.html" %}
+
+{% block title %}✏️ Edit Leave Request{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-lg border-0 rounded-3">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">✏️ Edit Leave Request</h4>
+        </div>
+        <div class="card-body p-4">
+
+          <!-- System / Validation messages -->
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert 
+                {% if message.tags == 'error' %}alert-danger
+                {% elif message.tags == 'success' %}alert-success
+                {% elif message.tags == 'warning' %}alert-warning
+                {% else %}alert-info{% endif %}
+                alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="bi 
+                  {% if message.tags == 'error' %}bi-x-circle-fill
+                  {% elif message.tags == 'success' %}bi-check-circle-fill
+                  {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                  {% else %}bi-info-circle-fill{% endif %}
+                  me-2"></i>
+                <div>{{ message }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <!-- Edit Form -->
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Start Date -->
+            <div class="mb-3">
+              <label for="id_start_date" class="form-label fw-semibold">Start Date</label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}
+                <div class="text-danger small">{{ form.start_date.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- End Date -->
+            <div class="mb-3">
+              <label for="id_end_date" class="form-label fw-semibold">End Date</label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}
+                <div class="text-danger small">{{ form.end_date.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Leave Type -->
+            <div class="mb-3">
+              <label for="id_leave_type" class="form-label fw-semibold">Leave Type</label>
+              {{ form.leave_type }}
+              {% if form.leave_type.errors %}
+                <div class="text-danger small">{{ form.leave_type.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Reason -->
+            <div class="mb-3">
+              <label for="id_reason" class="form-label fw-semibold">Reason</label>
+              {{ form.reason }}
+              {% if form.reason.errors %}
+                <div class="text-danger small">{{ form.reason.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex justify-content-between mt-4">
+              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-secondary">
+                ⬅ Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                💾 Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

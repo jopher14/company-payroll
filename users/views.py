@@ -83,17 +83,35 @@ def file_leave(request: HttpRequest) -> HttpResponse:
             leave = form.save(commit=False)
             leave.employee = user
 
-            # Ensure leave_type is valid
+            # ✅ Validate leave_type
             if leave.leave_type not in dict(Leave.LEAVE_TYPE_CHOICES):
                 messages.error(request, "Invalid leave type selected.")
                 return redirect("users:file_leave")
 
-            # Auto-set end_date for half-day leaves (same as start_date)
+            # ✅ Half-day: force end_date = start_date
             if leave.leave_type == Leave.HALF_DAY:
                 leave.end_date = leave.start_date
 
+            # 🚫 Prevent duplicate/overlap if Pending or Approved
+            overlapping_leave = Leave.objects.filter(
+                employee=user,
+                status__in=["Pending", "Approved"],  # 👈 ignores Rejected/Cancelled
+                start_date__lte=leave.end_date,
+                end_date__gte=leave.start_date
+            ).first()
+
+            if overlapping_leave:
+                messages.error(
+                    request,
+                    f"❌ Overlaps with your existing {overlapping_leave.status} leave "
+                    f"from {overlapping_leave.start_date.strftime('%b %d, %Y')} "
+                    f"to {overlapping_leave.end_date.strftime('%b %d, %Y')}."
+                )
+                return redirect("users:my_leaves")
+
+            # ✅ Save if no conflict
             leave.save()
-            messages.success(request, "Leave request submitted successfully.")
+            messages.success(request, "✅ Leave request submitted successfully.")
             return redirect("users:my_leaves")
         else:
             messages.error(request, "Please correct the errors below.")
@@ -117,24 +135,63 @@ def my_leaves(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def edit_leave(request: HttpRequest, pk) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="pending")
+    user = cast(User, request.user)
+    leave = get_object_or_404(Leave, pk=pk, employee=user, status="Pending")
+
     if request.method == "POST":
         form = LeaveForm(request.POST, instance=leave)
         if form.is_valid():
-            form.save()
-            return redirect("my_leaves")
+            updated_leave = form.save(commit=False)
+
+            # ensure employee and status are preserved
+            updated_leave.employee = leave.employee
+            updated_leave.status = leave.status
+
+            # ✅ Half-day rule
+            if updated_leave.leave_type == Leave.HALF_DAY:
+                updated_leave.end_date = updated_leave.start_date
+
+            # 🚫 Prevent overlap
+            overlapping_leave = Leave.objects.filter(
+                employee=user,
+                status__in=["Pending", "Approved"],
+                start_date__lte=updated_leave.end_date,
+                end_date__gte=updated_leave.start_date
+            ).exclude(pk=leave.pk).first()
+
+            if overlapping_leave:
+                messages.error(
+                    request,
+                    f"❌ Overlaps with your existing {overlapping_leave.status} leave "
+                    f"from {overlapping_leave.start_date:%b %d, %Y} "
+                    f"to {overlapping_leave.end_date:%b %d, %Y}."
+                )
+                return redirect("users:my_leaves")
+
+            # ✅ Save
+            updated_leave.save()
+            messages.success(request, "✅ Leave request updated successfully.")
+            return redirect("users:my_leaves")
     else:
         form = LeaveForm(instance=leave)
-    return render(request, "leave/file_leave.html", {"form": form, "edit": True})
+
+    return render(request, "leave/edit_leaves.html", {"form": form, "edit": True, "leave": leave})
 
 
 @login_required
 def delete_leave(request: HttpRequest, pk) -> HttpResponse:
-    leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="pending")
+    try:
+        leave = get_object_or_404(Leave, pk=pk, employee=request.user, status="Pending")
+    except Leave.DoesNotExist:
+        messages.error(request, "❌ You can only delete pending leave requests.")
+        return redirect("users:my_leaves")
+
     if request.method == "POST":
         leave.delete()
-        return redirect("my_leaves")
-    return render(request, "leave/delete_leave.html", {"leave": leave})
+        messages.success(request, "✅ Leave request deleted successfully.")
+        return redirect("users:my_leaves")
+
+    return render(request, "leave/delete_leaves.html", {"leave": leave})
 
 
 # --- SUPERVISOR ---
