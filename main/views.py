@@ -118,8 +118,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     # ✅ Attendance overrides
     for log in attendance_logs:
         day_str = log.date.isoformat()
-
-        # Default from Attendance.status
         status = log.status
 
         if status == "Present":
@@ -166,7 +164,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         days = (leave.end_date - leave.start_date).days + 1
         for n in range(days):
             current_date = leave.start_date + timedelta(days=n)
-            # Skip if an attendance log already exists
             if current_date in {log.date for log in attendance_logs}:
                 continue
 
@@ -183,7 +180,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "allDay": True,
             })
 
-    # ✅ Pending requests count (default = 0 for all users)
+    # ✅ Pending requests count
     pending_leaves_count = 0
     pending_overtimes_count = 0
     pending_schedule_changes_count = 0
@@ -195,10 +192,21 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").count()
 
     elif user.role == "supervisor":
-        # Supervisor sees only pending requests NOT created by themselves
-        pending_leaves_count = Leave.objects.filter(status="Pending").exclude(employee=user).count()
-        pending_overtimes_count = Overtime.objects.filter(status="pending").exclude(employee=user).count()
-        pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").exclude(employee=user).count()
+        # Supervisor sees only pending requests from employees
+        pending_leaves_count = Leave.objects.filter(
+            status="Pending",
+            employee__role="employee"
+        ).exclude(employee=user).count()
+
+        pending_overtimes_count = Overtime.objects.filter(
+            status="pending",
+            employee__role="employee"
+        ).exclude(employee=user).count()
+
+        pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(
+            status="pending",
+            employee__role="employee"
+        ).exclude(employee=user).count()
 
     context = {
         "user": user,
