@@ -29,7 +29,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "192.168.100.154"
+    "192.168.100.154",
+    "192.168.1.46"
 ]
 
 
@@ -147,7 +148,5 @@ LOGOUT_REDIRECT_URL = 'users:login'
 SESSION_COOKIE_AGE = 15 * 60
 SESSION_SAVE_EVERY_REQUEST = True
 
-
-from django.contrib.messages import constants as messages
-
+# Keep only the storage setting
 MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"

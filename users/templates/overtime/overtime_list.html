@@ -5,9 +5,11 @@
   <!-- Pending Overtime -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>⏳ Pending Overtime Requests</h3>
-    <a href="{% url 'users:overtime_request' %}" class="btn btn-primary">
-      ➕ Request Overtime
-    </a>
+    {% if user.role == "employee" %}
+      <a href="{% url 'users:overtime_request' %}" class="btn btn-primary">
+        ➕ Request Overtime
+      </a>
+    {% endif %}
   </div>
   <h5>Waiting for Approval</h5>
 
@@ -32,8 +34,7 @@
           {% if request.user == ot.employee %}
             <!-- Request owner can edit/delete if still pending -->
             <a href="{% url 'users:overtime_edit' ot.id %}" class="btn btn-sm btn-primary">Edit</a>
-            <a href="{% url 'users:overtime_delete' ot.id %}" class="btn btn-sm btn-danger"
-               onclick="return confirm('Are you sure you want to delete this request?');">Delete</a>
+            <a href="{% url 'users:overtime_delete' ot.id %}" class="btn btn-sm btn-danger">Delete</a>
           
           {% else %}
             <!-- Approval logic -->

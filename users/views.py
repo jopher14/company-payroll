@@ -484,13 +484,12 @@ def overtime_list(request: HttpRequest) -> HttpResponse:
 def overtime_request(request: HttpRequest) -> HttpResponse:
     user = request.user
     if not isinstance(user, User):
-        # Should never happen because of @login_required
         return HttpResponse("Invalid user", status=400)
 
     # 🚫 Restrict to Supervisor & Employee only
     if user.role not in ["supervisor", "employee"]:
         messages.error(request, "You are not allowed to file overtime requests.")
-        return redirect("users:overtime_list")
+        return redirect("users:my_pending_overtime")
 
     if request.method == "POST":
         form = OvertimeForm(request.POST)
@@ -512,14 +511,13 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
                     end_dt += timedelta(days=1)
 
                 diff = end_dt - start_dt
-                overtime.hours = round(diff.total_seconds() / 3600, 2)  # store as decimal hours
+                overtime.hours = round(diff.total_seconds() / 3600, 2)
 
-            # Overtime type comes directly from the form (default = ordinary)
             overtime.overtime_type = form.cleaned_data.get("overtime_type", "ordinary")
 
             overtime.save()
             messages.success(request, "✅ Overtime request submitted successfully!")
-            return redirect("users:overtime_list")
+            return redirect("users:my_pending_overtime")
     else:
         form = OvertimeForm()
 
@@ -529,10 +527,6 @@ def overtime_request(request: HttpRequest) -> HttpResponse:
 @login_required
 def my_pending_overtime(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
-
-    # Only allow supervisors
-    if user.role != "supervisor":
-        return HttpResponse("Unauthorized", status=403)
 
     # Pending requests
     pending_overtime = Overtime.objects.filter(employee=user, status="pending").order_by("-date")
@@ -681,17 +675,13 @@ def pending_overtimes(request: HttpRequest) -> HttpResponse:
 @login_required
 def overtime_edit(request: HttpRequest, pk: int) -> HttpResponse:
     overtime = get_object_or_404(Overtime, pk=pk)
-    user = cast(User, request.user)
-
-    # Only allow supervisor who owns the request and only if it's pending
-    if user.role != "supervisor" or overtime.employee != request.user or overtime.status != "pending":
-        return HttpResponse("Unauthorized", status=403)
 
     if request.method == "POST":
         form = OvertimeForm(request.POST, instance=overtime)
         if form.is_valid():
             form.save()
-            return redirect("my_pending_overtime")
+            messages.success(request, "✅ Overtime request updated successfully!")
+            return redirect("users:my_pending_overtime")
     else:
         form = OvertimeForm(instance=overtime)
 
@@ -701,15 +691,11 @@ def overtime_edit(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def overtime_delete(request: HttpRequest, pk: int) -> HttpResponse:
     overtime = get_object_or_404(Overtime, pk=pk)
-    user = cast(User, request.user)
-
-    # Only allow supervisor who owns the request and only if it's pending
-    if user.role != "supervisor" or overtime.employee != request.user or overtime.status != "pending":
-        return HttpResponse("Unauthorized", status=403)
 
     if request.method == "POST":
         overtime.delete()
-        return redirect("my_pending_overtime")
+        messages.success(request, "🗑️ Overtime request deleted successfully!")
+        return redirect("users:my_pending_overtime")
 
     return render(request, "overtime/overtime_confirm_delete.html", {"overtime": overtime})
 
