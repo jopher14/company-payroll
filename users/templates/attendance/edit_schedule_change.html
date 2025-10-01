@@ -1,14 +1,40 @@
 {% extends "main/base.html" %}
-{% block title %}Edit Schedule Change{% endblock %}
+{% block title %}✏️ Edit Schedule Change{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h3>Edit Schedule Change Request</h3>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Save Changes</button>
-    <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-secondary">Cancel</a>
-  </form>
+<div class="container d-flex justify-content-center mt-5">
+  <div class="card shadow-lg border-0 rounded-3" style="max-width: 500px; width: 100%;">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">✏️ Edit Schedule Change Request</h6>
+    </div>
+
+    <div class="card-body">
+      <form method="post" class="needs-validation" novalidate>
+          {% csrf_token %}
+
+          {# Render each field manually except schedule #}
+          {{ form.date.label_tag }}
+          {{ form.date }}
+
+          {{ form.requested_time_in.label_tag }}
+          {{ form.requested_time_in }}
+
+          {{ form.requested_time_out.label_tag }}
+          {{ form.requested_time_out }}
+
+          {{ form.reason.label_tag }}
+          {{ form.reason }}
+
+          <div class="d-flex justify-content-end gap-2 mt-3">
+              <a href="{% url 'users:my_pending_schedule_change' %}" class="btn btn-outline-danger">
+                  ❌ Cancel
+              </a>
+              <button type="submit" class="btn btn-success">
+                  💾 Save Changes
+              </button>
+          </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

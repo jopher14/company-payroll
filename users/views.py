@@ -784,7 +784,8 @@ def request_schedule_change(request: HttpRequest) -> HttpResponse:
                     change_request.requested_time_out = recurring_schedule.time_out
 
             change_request.save()
-            return redirect("users:request_schedule_change")
+            messages.success(request, "✅ Schedule Change request successfully!")
+            return redirect("users:my_pending_schedule_change")
         else:
             print(form.errors)
     else:
@@ -946,13 +947,14 @@ def edit_schedule_change(request: HttpRequest, pk) -> HttpResponse:
 
     # Only allow the employee who created it to edit
     if request.user != change_request.employee:
-        return redirect('users:pending_schedule_changes')
+        return redirect('users:my_pending_schedule_change')
 
     if request.method == "POST":
         form = ScheduleChangeRequestForm(request.POST, instance=change_request, employee=request.user)
         if form.is_valid():
             form.save()
-            return redirect('users:pending_schedule_changes')
+            messages.success(request, "✅ Schedule Change request updated successfully!")
+            return redirect('users:my_pending_schedule_change')
     else:
         form = ScheduleChangeRequestForm(instance=change_request, employee=request.user)
 
@@ -966,12 +968,12 @@ def delete_schedule_change(request: HttpRequest, pk: int) -> HttpResponse:
     # Only the request owner can delete
     if request.user != change_request.employee:
         messages.error(request, "You are not allowed to delete this request.")
-        return redirect("users:pending_schedule_changes")
+        return redirect("users:my_pending_schedule_change")
 
     if request.method == "POST":
         change_request.delete()
         messages.success(request, "Schedule change request deleted successfully.")
-        return redirect("users:pending_schedule_changes")
+        return redirect("users:my_pending_schedule_change")
 
     # Render confirmation page
     return render(
