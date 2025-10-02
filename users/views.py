@@ -1034,11 +1034,11 @@ def manage_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
 
             return redirect("users:manage_attendance")
 
-    # Context for template
+    # views.py (only changed ordering)
     context = {
         "attendance": attendance,
-        "employees": User.objects.filter(is_active=True,  is_superuser=False),
-        "attendance_list": Attendance.objects.select_related("employee").order_by("-date"),
+        "employees": User.objects.filter(is_active=True, is_superuser=False),
+        "attendance_list": Attendance.objects.select_related("employee").order_by("employee__last_name", "employee__first_name", "-date"),
     }
     return render(request, "attendance/add_edit_delete_attendance.html", context)
 
