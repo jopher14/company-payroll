@@ -1,0 +1,23 @@
+{% extends "main/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center mt-5">
+  <div class="card shadow-lg border-0 rounded-3" style="max-width: 500px; width: 100%;">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">{{ title }}</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex justify-content-between mt-3">
+          <a href="{% url 'users:manage_loans' %}" class="btn btn-secondary">⬅ Back</a>
+          <button type="submit" class="btn btn-success">💾 Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

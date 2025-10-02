@@ -2,8 +2,8 @@ from typing import cast, Any, Optional
 from datetime import time
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse, HttpRequest
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule
-from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan
+from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm, LoanForm
 from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -1050,3 +1050,55 @@ def delete_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
     attendance.delete()
     messages.success(request, "Attendance deleted successfully.")
     return redirect("users:manage_attendance")
+
+
+# ✅ check if user is HR or superuser
+def is_hr_or_admin(user):
+    return user.is_superuser or getattr(user, "role", None) == "human_resources"
+
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def manage_loans(request):
+    loans = Loan.objects.select_related("employee").all().order_by("-start_date")
+    return render(request, "loans/manage_loans.html", {"loans": loans})
+
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def create_loan(request):
+    if request.method == "POST":
+        form = LoanForm(request.POST)
+        if form.is_valid():
+            loan = form.save()
+            messages.success(request, f"Loan for {loan.employee} created successfully.")
+            return redirect("loans:manage_loans")
+    else:
+        form = LoanForm()
+    return render(request, "loans/loan_form.html", {"form": form, "title": "➕ Add Loan"})
+
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def edit_loan(request, pk):
+    loan = get_object_or_404(Loan, pk=pk)
+    if request.method == "POST":
+        form = LoanForm(request.POST, instance=loan)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Loan updated successfully.")
+            return redirect("loans:manage_loans")
+    else:
+        form = LoanForm(instance=loan)
+    return render(request, "loans/loan_form.html", {"form": form, "title": "✏️ Edit Loan"})
+
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def delete_loan(request, pk):
+    loan = get_object_or_404(Loan, pk=pk)
+    if request.method == "POST":
+        loan.delete()
+        messages.success(request, "Loan deleted successfully.")
+        return redirect("loans:manage_loans")
+    return render(request, "loans/confirm_delete.html", {"loan": loan})

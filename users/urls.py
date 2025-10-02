@@ -68,4 +68,10 @@ urlpatterns = [
     path(route="overtimes/<int:pk>/<str:action>/", view=views.overtime_action, name="overtime_action"),
     path(route="overtime/pending/", view=views.pending_overtimes, name="pending_overtimes"),
     path(route="overtime/my_pending/", view=views.my_pending_overtime, name="my_pending_overtime"),
+
+    # Loans
+    path(route="loans/", view=views.manage_loans, name="manage_loans"),
+    path(route="create/", view=views.create_loan, name="create_loan"),
+    path(route="<int:pk>/edit/", view=views.edit_loan, name="edit_loan"),
+    path(route="<int:pk>/delete/", view=views.delete_loan, name="delete_loan"),
 ]

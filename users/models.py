@@ -507,3 +507,24 @@ class ScheduleChangeRequest(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.date} ({self.status})"
+
+
+class Loan(models.Model):
+    LOAN_TYPES = [
+        ("personal", "Personal Loan"),
+        ("emergency", "Emergency Loan"),
+        ("salary", "Salary Loan"),
+        ("other", "Other"),
+    ]
+
+    employee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="loans"
+    )
+    loan_type = models.CharField(max_length=50, choices=LOAN_TYPES, default="personal")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    balance = models.DecimalField(max_digits=12, decimal_places=2)
+    start_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.employee.get_full_name()} - {self.loan_type} ({self.amount})"

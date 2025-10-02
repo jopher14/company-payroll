@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest
+from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan
 from datetime import time
 
 
@@ -192,3 +192,32 @@ class ScheduleChangeRequestForm(forms.ModelForm):
         t = self.cleaned_data["requested_time_out"]
         h, m = map(int, t.split(":"))
         return time(h, m)
+
+
+class LoanForm(forms.ModelForm):
+    class Meta:
+        model = Loan
+        fields = ["employee", "loan_type", "amount", "balance", "start_date", "is_active"]
+
+        widgets = {
+            "employee": forms.Select(attrs={"class": "form-select"}),
+            "loan_type": forms.Select(attrs={"class": "form-select"}),
+            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "balance": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # 👇 remove "---------" placeholder
+        self.fields["employee"].empty_label = None
+
+        # 👇 exclude superusers from dropdown
+        self.fields["employee"].queryset = (
+            self.fields["employee"].queryset.filter(is_superuser=False)
+        )
+
+        # 👇 show only full name (without role text)
+        self.fields["employee"].label_from_instance = lambda obj: obj.get_full_name()
