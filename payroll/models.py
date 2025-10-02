@@ -111,7 +111,7 @@ class Payroll(models.Model):
         return Decimal("0.00")
 
     def compute_attendance_deduction(self):
-        """Compute attendance deductions and build breakdown logs."""
+        """Compute attendance deductions (salary + allowance separately) and build breakdown logs."""
         holidays = getattr(settings, "HOLIDAYS", set())  # or pass from utils
 
         # cutoff dates
@@ -129,8 +129,12 @@ class Payroll(models.Model):
             for att in Attendance.objects.filter(employee=self.employee, date__range=[start_date, end_date])
         }
 
-        total_deduction = Decimal("0.00")
+        total_salary_deduction = Decimal("0.00")
+        total_allowance_deduction = Decimal("0.00")
         breakdown = {}
+
+        # compute per-day allowance (spread across 26 workdays)
+        daily_allowance = (self.allowances / Decimal(26)).quantize(Decimal("0.01"))
 
         day_count = (end_date - start_date).days + 1
         for i in range(day_count):
@@ -143,20 +147,27 @@ class Payroll(models.Model):
             att = attendance_map.get(day)
 
             if not att or not att.time_in:  # completely absent
-                deduction = self.daily_rate
+                salary_deduction = self.daily_rate
+                allowance_deduction = daily_allowance
                 reason = "Absent"
-            else:
-                deduction = att.compute_deduction(self.daily_rate, self.hourly_rate)
+            else:  # Present but late/half-day
+                salary_deduction = att.compute_deduction(self.daily_rate, self.hourly_rate)
+                allowance_deduction = Decimal("0.00")
                 reason = att.get_deduction_reason()
 
-            if deduction > 0:
-                total_deduction += deduction
+            # accumulate totals
+            total_salary_deduction += salary_deduction
+            total_allowance_deduction += allowance_deduction
+
+            # store breakdown
+            if salary_deduction > 0 or allowance_deduction > 0:
                 breakdown[str(day)] = {
-                    "deduction": str(deduction.quantize(Decimal("0.01"))),
+                    "Salary Deduction": str(salary_deduction.quantize(Decimal("0.01"))),
+                    "Allowance Deduction": str(allowance_deduction.quantize(Decimal("0.01"))),
                     "reason": reason,
                 }
 
-        return total_deduction, breakdown
+        return total_salary_deduction, total_allowance_deduction, breakdown
 
     def save(self, *args, **kwargs):
         # ✅ Auto-compute rates
@@ -165,7 +176,12 @@ class Payroll(models.Model):
             self.hourly_rate = self.daily_rate / Decimal(8)
 
         # ✅ Attendance deductions with breakdown
-        self.attendance_deduction, breakdown = self.compute_attendance_deduction()
+        salary_ded, allowance_ded, breakdown = self.compute_attendance_deduction()
+        self.total_salary_deduction = salary_ded
+        self.total_allowance_deduction = allowance_ded
+
+        # keep attendance_deduction as SALARY-only (optional, or you can drop it)
+        self.attendance_deduction = salary_ded
 
         # requires a JSONField in Payroll model
         if hasattr(self, "attendance_breakdown"):
