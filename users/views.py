@@ -1,4 +1,5 @@
-from typing import cast, Any, Optional
+from typing import cast, Any, Optional, Union
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from datetime import time
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse, HttpRequest
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -12,6 +13,7 @@ from django.utils.timezone import now, localtime
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from django.utils.timezone import localdate
+from dateutil.relativedelta import relativedelta
 
 
 @login_required
@@ -1053,8 +1055,8 @@ def delete_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
 
 
 # ✅ check if user is HR or superuser
-def is_hr_or_admin(user):
-    return user.is_superuser or getattr(user, "role", None) == "human_resources"
+def is_hr_or_admin(user: Union[AbstractBaseUser, AnonymousUser]) -> bool:
+    return getattr(user, "is_superuser", False) or getattr(user, "role", None) == "human_resources"
 
 
 @login_required
@@ -1066,39 +1068,54 @@ def manage_loans(request):
 
 @login_required
 @user_passes_test(is_hr_or_admin)
-def create_loan(request):
+def create_loan(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = LoanForm(request.POST)
         if form.is_valid():
-            loan = form.save()
-            messages.success(request, f"Loan for {loan.employee} created successfully.")
+            loan = form.save(commit=False)
+
+            # auto-calculate end_date (if not already filled by form)
+            if loan.start_date and loan.term_months:
+                loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
+
+            loan.save()
+            messages.success(request, f"Loan for {loan.employee.get_full_name()} created successfully.")
             return redirect("loans:manage_loans")
     else:
         form = LoanForm()
+
     return render(request, "loans/loan_form.html", {"form": form, "title": "➕ Add Loan"})
 
 
 @login_required
 @user_passes_test(is_hr_or_admin)
-def edit_loan(request, pk):
+def edit_loan(request: HttpRequest, pk: int) -> HttpResponse:
     loan = get_object_or_404(Loan, pk=pk)
+
     if request.method == "POST":
         form = LoanForm(request.POST, instance=loan)
         if form.is_valid():
-            form.save()
+            loan = form.save(commit=False)
+
+            # recalc end_date when term or start_date changes
+            if loan.start_date and loan.term_months:
+                loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
+
+            loan.save()
             messages.success(request, "Loan updated successfully.")
-            return redirect("loans:manage_loans")
+            return redirect("users:manage_loans")
     else:
         form = LoanForm(instance=loan)
+
     return render(request, "loans/loan_form.html", {"form": form, "title": "✏️ Edit Loan"})
 
 
 @login_required
 @user_passes_test(is_hr_or_admin)
-def delete_loan(request, pk):
+def delete_loan(request: HttpRequest, pk: int) -> HttpResponse:
     loan = get_object_or_404(Loan, pk=pk)
     if request.method == "POST":
         loan.delete()
         messages.success(request, "Loan deleted successfully.")
-        return redirect("loans:manage_loans")
+        return redirect("users:manage_loans")
     return render(request, "loans/confirm_delete.html", {"loan": loan})

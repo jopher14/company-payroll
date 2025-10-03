@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan
 from payroll.models import Payroll
 
 
@@ -139,3 +139,21 @@ class ScheduleChangeRequestAdmin(admin.ModelAdmin):
     search_fields = ('employee__username', 'employee__first_name', 'employee__last_name', 'reason')
     readonly_fields = ('created_at',)
     ordering = ('-created_at',)
+
+
+@admin.register(Loan)
+class LoanAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "loan_type",
+        "amount",
+        "balance",
+        "term_months",
+        "start_date",
+        "end_date",
+        "is_active",
+    )
+    list_filter = ("loan_type", "term_months", "is_active")
+    search_fields = ("employee__first_name", "employee__last_name", "loan_type")
+    ordering = ("-start_date",)
+    date_hierarchy = "start_date"

@@ -21,7 +21,9 @@
                 <th>Loan Type</th>
                 <th>Amount</th>
                 <th>Balance</th>
+                <th>Month Terms</th>
                 <th>Start Date</th>
+                <th>End Date</th>   <!-- ✅ Added -->
                 <th>Status</th>
                 <th class="text-center">Actions</th>
               </tr>
@@ -33,7 +35,9 @@
                 <td>{{ loan.loan_type }}</td>
                 <td>₱{{ loan.amount|floatformat:2 }}</td>
                 <td>₱{{ loan.balance|floatformat:2 }}</td>
+                <td>{{ loan.term_months }} Months</td>
                 <td>{{ loan.start_date }}</td>
+                <td>{{ loan.end_date }}</td>
                 <td>
                   {% if loan.is_active %}
                     <span class="badge bg-success">Active</span>
@@ -42,8 +46,8 @@
                   {% endif %}
                 </td>
                 <td class="text-center">
-                  <a href="{% url 'loans:edit_loan' loan.pk %}" class="btn btn-sm btn-outline-primary">✏️ Edit</a>
-                  <a href="{% url 'loans:delete_loan' loan.pk %}" class="btn btn-sm btn-outline-danger">🗑 Delete</a>
+                  <a href="{% url 'users:edit_loan' loan.pk %}" class="btn btn-sm btn-outline-primary">✏️ Edit</a>
+                  <a href="{% url 'users:delete_loan' loan.pk %}" class="btn btn-sm btn-outline-danger">🗑 Delete</a>
                 </td>
               </tr>
               {% endfor %}

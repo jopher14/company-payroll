@@ -197,7 +197,16 @@ class ScheduleChangeRequestForm(forms.ModelForm):
 class LoanForm(forms.ModelForm):
     class Meta:
         model = Loan
-        fields = ["employee", "loan_type", "amount", "balance", "start_date", "is_active"]
+        fields = [
+            "employee",
+            "loan_type",
+            "amount",
+            "balance",
+            "start_date",
+            "term_months",  # NEW
+            "end_date",     # NEW
+            "is_active",
+        ]
 
         widgets = {
             "employee": forms.Select(attrs={"class": "form-select"}),
@@ -205,6 +214,8 @@ class LoanForm(forms.ModelForm):
             "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "balance": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "term_months": forms.Select(attrs={"class": "form-select"}),  # dropdown
+            "end_date": forms.DateInput(attrs={"class": "form-control", "type": "date", "readonly": "readonly"}),  # auto-calculated, readonly
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
@@ -221,3 +232,7 @@ class LoanForm(forms.ModelForm):
 
         # 👇 show only full name (without role text)
         self.fields["employee"].label_from_instance = lambda obj: obj.get_full_name()
+
+        # 👇 if instance exists, auto-set end_date in form
+        if self.instance and self.instance.start_date and self.instance.term_months:
+            self.fields["end_date"].initial = self.instance.end_date

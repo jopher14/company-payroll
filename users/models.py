@@ -7,6 +7,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 import uuid
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 
 class User(AbstractUser):
@@ -517,6 +518,12 @@ class Loan(models.Model):
         ("other", "Other"),
     ]
 
+    LOAN_TERMS = [
+        (12, "12 Months"),
+        (18, "18 Months"),
+        (24, "24 Months"),
+    ]
+
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="loans"
     )
@@ -524,7 +531,15 @@ class Loan(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     balance = models.DecimalField(max_digits=12, decimal_places=2)
     start_date = models.DateField()
+    term_months = models.PositiveIntegerField(choices=LOAN_TERMS, default=12)
+    end_date = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        # ✅ Automatically compute end_date from start_date + term_months
+        if self.start_date and self.term_months:
+            self.end_date = self.start_date + relativedelta(months=self.term_months)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.employee.get_full_name()} - {self.loan_type} ({self.amount})"
