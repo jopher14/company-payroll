@@ -5,80 +5,115 @@
 
 {% block content %}
 <div class="container mt-4" style="max-width: 700px; font-size: 0.9rem;">
-    <div class="card shadow-sm p-3" id="payslip">
-        <h4 class="text-center mb-3">🧾 Payslip</h4>
+  <div class="card shadow-sm p-4" id="payslip">
+    <h4 class="text-center mb-3">🧾 Employee Payslip</h4>
 
-        <p><strong>Employee:</strong> {{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</p>
-        <p><strong>Position:</strong> {{ payslip.employee.get_role_display }}</p>
-        <p><strong>Month Covered:</strong> {{ payslip.month_name }} {{ payslip.year }} ({{ payslip.get_period_display }})</p>
+    <p><strong>Employee:</strong> {{ payslip.employee.first_name }} {{ payslip.employee.last_name }}</p>
+    <p><strong>Position:</strong> {{ payslip.employee.get_role_display }}</p>
+    <p><strong>Period Covered:</strong> {{ payslip.month_name }} {{ payslip.year }} ({{ payslip.get_period_display }})</p>
 
-        <!-- Earnings -->
-        <table class="table table-sm table-bordered mt-2">
-            <thead class="table-dark">
-                <tr><th>Earnings</th><th>Amount</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Basic Rate (Full Salary)</td><td>{{ payslip.employee.salary|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Daily Rate</td><td>{{ payslip.daily_rate|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Hourly Rate</td><td>{{ payslip.hourly_rate|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Basic Income (This Period)</td><td>{{ payslip.basic_salary|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Allowances</td><td>{{ payslip.allowances|floatformat:2|intcomma }}</td></tr>
-                <tr class="table-light"><td><strong>Gross Income</strong></td><td><strong>{{ gross_salary|floatformat:2|intcomma }}</strong></td></tr>
-            </tbody>
-        </table>
+    <!-- Earnings Section -->
+    <table class="table table-sm table-bordered mt-3">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Earnings</th>
+          <th>Amount (₱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Basic Rate (Full Salary)</td><td class="text-end">{{ payslip.employee.salary|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Daily Rate</td><td class="text-end">{{ payslip.daily_rate|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Hourly Rate</td><td class="text-end">{{ payslip.hourly_rate|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Basic Income (This Period)</td><td class="text-end">{{ payslip.basic_salary|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Allowances</td><td class="text-end">{{ payslip.allowances|floatformat:2|intcomma }}</td></tr>
+        <tr class="table-light fw-bold">
+          <td>Gross Income</td>
+          <td class="text-end">{{ gross_salary|floatformat:2|intcomma }}</td>
+        </tr>
+      </tbody>
+    </table>
 
-        {% if payslip.overtime_pay|floatformat:2 != "0.00" or payslip.holiday_pay|floatformat:2 != "0.00" %}
-        <!-- Overtime & Holiday -->
-        <table class="table table-sm table-bordered mt-2">
-            <thead class="table-dark">
-                <tr><th>Additional Pay</th><th>Amount</th></tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Overtime Pay</td>
-                    <td>{{ payslip.overtime_pay|default:"0.00"|floatformat:2|intcomma }}</td>
-                </tr>
-                <tr>
-                    <td>Holiday Pay</td>
-                    <td>{{ payslip.holiday_pay|default:"0.00"|floatformat:2|intcomma }}</td>
-                </tr>
-                <tr class="table-light">
-                    <td><strong>Total Additional Pay</strong></td>
-                    <td>
-                        <strong>
-                            {{ payslip.overtime_pay|add:payslip.holiday_pay|floatformat:2|intcomma }}
-                        </strong>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Additional Pay Section -->
+    {% if payslip.overtime_pay or payslip.holiday_pay %}
+    <table class="table table-sm table-bordered mt-3">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Additional Pay</th>
+          <th>Amount (₱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Overtime Pay</td><td class="text-end">{{ payslip.overtime_pay|default:"0.00"|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Holiday Pay</td><td class="text-end">{{ payslip.holiday_pay|default:"0.00"|floatformat:2|intcomma }}</td></tr>
+        <tr class="table-light fw-bold">
+          <td>Total Additional Pay</td>
+          <td class="text-end">
+            {{ payslip.overtime_pay|add:payslip.holiday_pay|floatformat:2|intcomma }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
     {% endif %}
 
-        <!-- Deductions -->
-        <table class="table table-sm table-bordered mt-2">
-            <thead class="table-dark">
-                <tr><th>Deductions</th><th>Amount</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>SSS</td><td>{{ payslip.sss|floatformat:2|intcomma }}</td></tr>
-                <tr><td>PhilHealth</td><td>{{ payslip.philhealth|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Pag-IBIG</td><td>{{ payslip.pagibig|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Withholding Tax</td><td>{{ payslip.withholding_tax|floatformat:2|intcomma }}</td></tr>
-                <tr><td>Attendance Deduction</td><td>{{ payslip.attendance_deduction|default:"0.00"|floatformat:2|intcomma }}</td></tr>
-                <tr class="table-light"><td><strong>Total Deductions</strong></td><td><strong>{{ payslip.total_deductions|floatformat:2|intcomma }}</strong></td></tr>
-            </tbody>
-        </table>
+    <!-- Loan Deduction Section -->
+    {% if payslip.loan_deduct|floatformat:2 != "0.00" %}
+    <table class="table table-sm table-bordered mt-3">
+      <thead class="table-danger text-center">
+        <tr>
+          <th>Loan Deductions</th>
+          <th>Amount (₱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if payslip.loan_type_summary %}
+          {% for loan_type, amount in payslip.loan_type_summary.items %}
+            <tr>
+              <td style="text-transform: capitalize;">{{ loan_type }} Loan Deduction</td>
+              <td class="text-end">{{ amount|floatformat:2|intcomma }}</td>
+            </tr>
+          {% endfor %}
+        {% endif %}
+        <tr class="table-light fw-bold">
+          <td>Total Loan Deduction</td>
+          <td class="text-end">{{ payslip.loan_deduct|floatformat:2|intcomma }}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% endif %}
 
-        <!-- Net Pay -->
-        <h5 class="text-end mt-3">
-            Net Pay: <span class="text-success">{{ payslip.net_pay|floatformat:2|intcomma }}</span>
-        </h5>
-    </div>
+    <!-- Deductions Section -->
+    <table class="table table-sm table-bordered mt-3">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Deductions</th>
+          <th>Amount (₱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>SSS</td><td class="text-end">{{ payslip.sss|floatformat:2|intcomma }}</td></tr>
+        <tr><td>PhilHealth</td><td class="text-end">{{ payslip.philhealth|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Pag-IBIG</td><td class="text-end">{{ payslip.pagibig|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Withholding Tax</td><td class="text-end">{{ payslip.withholding_tax|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Attendance Deduction</td><td class="text-end">{{ payslip.attendance_deduction|default:"0.00"|floatformat:2|intcomma }}</td></tr>
 
-    <!-- Action buttons -->
-    <div class="text-center mt-3">
-        <a href="{% url 'payroll:payroll_list' %}" class="btn btn-sm btn-secondary">⬅ Back</a>
-        <button onclick="window.print()" class="btn btn-sm btn-primary">🖨 Print</button>
-    </div>
+        <tr class="table-light fw-bold">
+          <td>Total Deductions</td>
+          <td class="text-end">{{ payslip.total_deductions|floatformat:2|intcomma }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Net Pay Section -->
+    <h5 class="text-end mt-4">
+      <strong>Net Pay:</strong>
+      <span class="text-success fw-bold">₱{{ payslip.net_pay|floatformat:2|intcomma }}</span>
+    </h5>
+  </div>
+
+  <!-- Actions -->
+  <div class="text-center mt-3">
+    <a href="{% url 'payroll:payroll_list' %}" class="btn btn-sm btn-secondary">⬅ Back</a>
+    <button onclick="window.print()" class="btn btn-sm btn-primary">🖨 Print</button>
+  </div>
 </div>
 {% endblock %}

@@ -147,13 +147,23 @@ class LoanAdmin(admin.ModelAdmin):
         "employee",
         "loan_type",
         "amount",
+        "loan_deduct",
         "balance",
         "term_months",
         "start_date",
         "end_date",
         "is_active",
     )
-    list_filter = ("loan_type", "term_months", "is_active")
-    search_fields = ("employee__first_name", "employee__last_name", "loan_type")
+    list_filter = (
+        "loan_type",
+        "is_active",
+        "term_months",
+        ("start_date", admin.DateFieldListFilter),
+    )
+    search_fields = (
+        "employee__first_name",
+        "employee__last_name",
+        "loan_type__name",  # if loan_type is a FK
+    )
     ordering = ("-start_date",)
     date_hierarchy = "start_date"

@@ -529,17 +529,51 @@ class Loan(models.Model):
     )
     loan_type = models.CharField(max_length=50, choices=LOAN_TYPES, default="personal")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    balance = models.DecimalField(max_digits=12, decimal_places=2)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     start_date = models.DateField()
     term_months = models.PositiveIntegerField(choices=LOAN_TERMS, default=12)
     end_date = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
+    # ✅ Semi-monthly deduction field (auto-computed)
+    loan_deduct = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Semi-monthly deduction amount applied to this loan.",
+    )
+
+    # ✅ ADD THIS FIELD
+    loan_type_summary = models.JSONField(null=True, blank=True)
+
     def save(self, *args, **kwargs):
-        # ✅ Automatically compute end_date from start_date + term_months
+        """Auto-compute end_date, balance, and default deduction when saving."""
+        # 🗓️ Compute end date if missing
         if self.start_date and self.term_months:
             self.end_date = self.start_date + relativedelta(months=self.term_months)
+
+        # 💰 Initialize balance to full amount when loan is first created
+        if self._state.adding and self.balance is None:
+            self.balance = self.amount
+
+        # 🧮 Auto-compute loan_deduct (semi-monthly)
+        if self._state.adding and (not self.loan_deduct or self.loan_deduct <= 0):
+            if self.amount and self.term_months:
+                monthly_payment = self.amount / Decimal(self.term_months)
+                self.loan_deduct = (monthly_payment / Decimal(2)).quantize(Decimal("0.01"))
+
+        # 🚫 Deactivate when fully paid
+        if self.balance is not None and self.balance <= 0:
+            self.balance = Decimal("0.00")
+            self.is_active = False
+
         super().save(*args, **kwargs)
+
+    def monthly_payment(self):
+        """Compute the expected monthly payment based on loan term."""
+        if self.term_months > 0:
+            return (self.amount / Decimal(self.term_months)).quantize(Decimal("0.01"))
+        return Decimal("0.00")
 
     def __str__(self):
         return f"{self.employee.get_full_name()} - {self.loan_type} ({self.amount})"

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from calendar import monthrange
 from decimal import Decimal
-from users.models import Attendance, Overtime
+from users.models import Attendance, Overtime, Loan
 from typing import Optional
 from datetime import date
 
@@ -239,3 +239,53 @@ def compute_total_attendance_deduction(
             total_deduction += day_total
 
     return total_deduction.quantize(Decimal("0.01")), breakdown
+
+
+def compute_loan_deduction(employee, period):
+    """
+    Compute total personal loan deductions (split semi-monthly).
+    Government loans are excluded from this calculation.
+
+    Returns:
+        total_deduction (Decimal)
+        breakdown (dict)
+        loan_type_summary (dict)
+    """
+    loans = Loan.objects.filter(employee=employee, is_active=True)
+    total_deduction = Decimal("0.00")
+    breakdown = {}
+    loan_type_summary = {}
+
+    for loan in loans:
+        deduction = Decimal("0.00")
+        reason = ""
+
+        # Skip government loans
+        if loan.loan_type.lower() in ["sss loan", "pag-ibig loan", "philhealth loan"]:
+            continue
+
+        if loan.loan_deduct and loan.loan_deduct > 0:
+            # Split deduction for semi-monthly
+            deduction = (loan.loan_deduct / Decimal("2.00")).quantize(Decimal("0.01"))
+            reason = "Manual loan_deduct split (semi-monthly)"
+        else:
+            reason = "No deduction set"
+
+        # Update loan balance
+        loan.balance -= deduction
+        if loan.balance <= Decimal("0.00"):
+            loan.is_active = False
+        loan.save(update_fields=["balance", "is_active"])
+
+        total_deduction += deduction
+
+        breakdown[loan.loan_type] = {
+            "amount": float(deduction),
+            "reason": reason,
+        }
+
+        loan_type_summary[loan.loan_type] = float(
+            loan_type_summary.get(loan.loan_type, Decimal("0.00")) + deduction
+        )
+
+    return total_deduction, breakdown, loan_type_summary

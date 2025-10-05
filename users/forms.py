@@ -2,6 +2,9 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan
 from datetime import time
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -195,44 +198,112 @@ class ScheduleChangeRequestForm(forms.ModelForm):
 
 
 class LoanForm(forms.ModelForm):
+    semi_monthly_deduct = forms.DecimalField(
+        label="Semi-Monthly Deduction",
+        required=False,
+        decimal_places=2,
+        max_digits=10,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "readonly": "readonly",
+                "style": "background-color: #f8f9fa;"
+            }
+        ),
+        help_text="This is your deduction per semi-monthly cutoff (auto-calculated)."
+    )
+
     class Meta:
         model = Loan
         fields = [
             "employee",
             "loan_type",
             "amount",
+            "loan_deduct",
             "balance",
             "start_date",
-            "term_months",  # NEW
-            "end_date",     # NEW
+            "term_months",
+            "end_date",
             "is_active",
         ]
-
         widgets = {
             "employee": forms.Select(attrs={"class": "form-select"}),
             "loan_type": forms.Select(attrs={"class": "form-select"}),
             "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "balance": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "balance": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "readonly": "readonly",
+                    "style": "background-color: #f8f9fa;",
+                }
+            ),
+            "loan_deduct": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01"}
+            ),
             "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "term_months": forms.Select(attrs={"class": "form-select"}),  # dropdown
-            "end_date": forms.DateInput(attrs={"class": "form-control", "type": "date", "readonly": "readonly"}),  # auto-calculated, readonly
+            "term_months": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
+            "end_date": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date",
+                    "readonly": "readonly",
+                    "style": "background-color: #f8f9fa;",
+                }
+            ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        help_texts = {
+            "loan_deduct": "Enter the <strong>monthly deduction amount</strong>. It will be split equally per cutoff.",
+            "term_months": "Number of months over which the loan will be repaid.",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # 👇 remove "---------" placeholder
         self.fields["employee"].empty_label = None
-
-        # 👇 exclude superusers from dropdown
         self.fields["employee"].queryset = (
             self.fields["employee"].queryset.filter(is_superuser=False)
         )
-
-        # 👇 show only full name (without role text)
         self.fields["employee"].label_from_instance = lambda obj: obj.get_full_name()
 
-        # 👇 if instance exists, auto-set end_date in form
+        amount = self.data.get("amount") or self.initial.get("amount") or getattr(self.instance, "amount", None)
+        self.fields["balance"].initial = amount or 0
+
         if self.instance and self.instance.start_date and self.instance.term_months:
             self.fields["end_date"].initial = self.instance.end_date
+
+        # Set the calculated semi-monthly deduction
+        loan_deduct = self.data.get("loan_deduct") or getattr(self.instance, "loan_deduct", None)
+        if loan_deduct:
+            try:
+                loan_deduct_decimal = Decimal(loan_deduct)
+                self.fields["semi_monthly_deduct"].initial = (loan_deduct_decimal / Decimal("2")).quantize(Decimal("0.01"))
+            except Exception:
+                self.fields["semi_monthly_deduct"].initial = None
+
+    def clean_loan_deduct(self):
+        loan_deduct = self.cleaned_data.get("loan_deduct")
+        if loan_deduct is not None and loan_deduct <= 0:
+            raise ValidationError("Loan deduction must be greater than 0.")
+        return loan_deduct
+
+    def clean_term_months(self):
+        term_months = self.cleaned_data.get("term_months")
+        if term_months is None or term_months <= 0:
+            raise ValidationError("Term months must be greater than zero.")
+        return term_months
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        term_months = cleaned_data.get("term_months")
+        amount = cleaned_data.get("amount")
+
+        if start_date and term_months:
+            cleaned_data["end_date"] = start_date + relativedelta(months=term_months)
+
+        if not self.instance.pk and amount:
+            cleaned_data["balance"] = amount
+
+        return cleaned_data

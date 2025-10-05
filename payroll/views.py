@@ -16,6 +16,7 @@ from payroll.utils import (
     compute_hourly_rate,
     compute_total_attendance_deduction,
     compute_employee_overtime,
+    compute_loan_deduction,
 )
 
 
@@ -25,24 +26,87 @@ def my_payslips(request: HttpRequest) -> HttpResponse:
     assert user.is_authenticated
 
     payslips = Payroll.objects.filter(employee=user)
-    return render(request, "payroll/my_payslip.html", {"payslips": payslips})
+
+    for p in payslips:
+        # Compute loan deductions for each payslip
+        loan_deduct, loan_breakdown, loan_type_summary = compute_loan_deduction(
+            p.employee,
+            period={"month": p.month_name, "year": p.year}
+        )
+
+        p.loan_deduction = loan_deduct
+        p.loan_breakdown = loan_breakdown
+        p.loan_type_summary = loan_type_summary
+
+        # Compute total deductions excluding loan deduction
+        p.total_deductions = (
+            p.sss
+            + p.philhealth
+            + p.pagibig
+            + p.withholding_tax
+            + p.attendance_deduction
+        )
+
+        # Compute gross salary
+        p.gross_salary = (
+            p.basic_salary
+            + p.allowances
+            + p.overtime_pay
+            + p.holiday_pay
+        )
+
+        # Compute net pay
+        p.net_pay = p.gross_salary - p.total_deductions - p.loan_deduction
+
+        # Compute rates if missing
+        p.daily_rate = p.daily_rate or compute_daily_rate(
+            p.employee.salary or Decimal("0.00"),
+            workdays_per_month=22,
+        )
+        p.hourly_rate = p.hourly_rate or compute_hourly_rate(
+            p.employee.salary or Decimal("0.00"),
+            workdays_per_month=22,
+            hours_per_day=8,
+        )
+
+    return render(
+        request,
+        "payroll/my_payslip.html",
+        {"payslips": payslips}
+    )
 
 
 @login_required
 def view_payslip(request: HttpRequest, pk: int) -> HttpResponse:
     payslip = get_object_or_404(Payroll, pk=pk)
 
-    # Compute gross, deductions, and net pay
-    gross_salary = payslip.basic_salary + payslip.allowances
-    deductions = (
+    # Compute gross salary
+    gross_salary = (
+        payslip.basic_salary
+        + payslip.allowances
+        + payslip.overtime_pay
+        + payslip.holiday_pay
+    )
+
+    # Compute loan deductions
+    loan_deduct, loan_breakdown, loan_type_summary = compute_loan_deduction(
+        payslip.employee,
+        period={"month": payslip.month_name, "year": payslip.year}
+    )
+
+    # Compute total deductions excluding loan deduction
+    total_deductions = (
         payslip.sss
         + payslip.philhealth
         + payslip.pagibig
         + payslip.withholding_tax
+        + payslip.attendance_deduction
     )
-    net_pay = gross_salary - deductions
 
-    # ✅ Use stored daily/hourly rate, fallback to utils if missing
+    # Compute net pay
+    net_pay = gross_salary - total_deductions - loan_deduct
+
+    # Compute rates if missing
     daily_rate = payslip.daily_rate or compute_daily_rate(
         payslip.employee.salary or Decimal("0.00"),
         workdays_per_month=22,
@@ -56,7 +120,10 @@ def view_payslip(request: HttpRequest, pk: int) -> HttpResponse:
     context = {
         "payslip": payslip,
         "gross_salary": gross_salary,
-        "deductions": deductions,
+        "total_deductions": total_deductions,
+        "loan_deduct": loan_deduct,
+        "loan_breakdown": loan_breakdown,
+        "loan_type_summary": loan_type_summary,
         "net_pay": net_pay,
         "daily_rate": daily_rate,
         "hourly_rate": hourly_rate,
@@ -100,14 +167,13 @@ def get_period_range(period: str):
 def generate_payroll(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
+    # --- Permission check ---
     if user.role != "human_resources":
         messages.error(request, "You are not authorized to generate payroll.")
         return redirect("payroll:payroll_list")
 
     today = datetime.now()
     year, month = today.year, today.month
-
-    # Prepare Philippine holidays for the current year
     ph_holidays = set(Philippines(years=[year]).keys())
 
     if request.method == "POST":
@@ -129,43 +195,45 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
                 daily_rate = compute_daily_rate(salary)
                 hourly_rate = compute_hourly_rate(salary)
 
-                # Salary components for cutoff
+                # --- Semi-monthly base pay ---
                 half_salary = salary / 2
                 half_allowances = allowances / 2
 
-                # Government deductions (halved for cutoff)
-                sss = compute_sss(salary) / 2
-                philhealth = compute_philhealth(salary) / 2
-                pagibig = compute_pagibig(salary) / 2
-
-                # Attendance deductions + breakdown
+                # --- Attendance deductions ---
                 attendance_deduction, attendance_breakdown = compute_total_attendance_deduction(
                     emp, year, month, start_day, end_day, daily_rate, hourly_rate, holidays=ph_holidays
                 )
 
-                # Holiday pay: pay if present on a holiday
+                # --- Holiday pay ---
                 holiday_pay = Decimal("0.00")
                 for log in attendance_breakdown:
                     log_date = datetime.strptime(log["date"], "%Y-%m-%d").date()
                     if log_date in ph_holidays and "Absent" not in log["reason"]:
                         holiday_pay += daily_rate
 
-                # Overtime pay
+                # --- Overtime pay ---
                 overtime_pay = compute_employee_overtime(emp, year, month, start_day, end_day, hourly_rate)
 
-                # Tax including overtime and holiday pay
+                # --- Loan deductions (Personal loans only) ---
+                loan_deduction, loan_breakdown, loan_type_summary = compute_loan_deduction(emp, period)
+
+                # --- Government deductions ---
+                sss = compute_sss(salary) / 2
+                philhealth = compute_philhealth(salary) / 2
+                pagibig = compute_pagibig(salary) / 2
                 tax = compute_withholding_tax(salary, overtime_pay + holiday_pay) / 2
 
-                # Total deductions and net pay
-                total_deductions = sss + philhealth + pagibig + tax + attendance_deduction
-                net_pay = half_salary + half_allowances + overtime_pay + holiday_pay - total_deductions
+                # --- Combine totals ---
+                gov_deductions = sss + philhealth + pagibig + tax
+                total_deductions = float(attendance_deduction) + float(loan_deduction) + float(gov_deductions)
+                net_pay = float(half_salary) + float(half_allowances) + float(overtime_pay) + float(holiday_pay) - float(total_deductions)
 
-                # Skip if payroll already exists
+                # --- Avoid duplicate payroll entries ---
                 if Payroll.objects.filter(employee=emp, month=month, year=year, period=period).exists():
                     skipped.append(emp.get_full_name() or emp.username)
                     continue
 
-                # Create payroll record
+                # --- Save payroll record ---
                 Payroll.objects.create(
                     employee=emp,
                     month=month,
@@ -175,29 +243,33 @@ def generate_payroll(request: HttpRequest) -> HttpResponse:
                     allowances=half_allowances,
                     overtime_pay=overtime_pay,
                     holiday_pay=holiday_pay,
+                    attendance_deduction=attendance_deduction,
+                    loan_deduction=loan_deduction,
                     sss=sss,
                     philhealth=philhealth,
                     pagibig=pagibig,
                     withholding_tax=tax,
+                    total_deductions=total_deductions,
+                    net_pay=net_pay,
                     daily_rate=daily_rate,
                     hourly_rate=hourly_rate,
+                    loan_type_summary=loan_type_summary,  # Store for later
                 )
 
-                # Add breakdown for template display
                 payroll_data.append({
                     "employee": emp.get_full_name(),
                     "attendance_deduction": attendance_deduction,
-                    "attendance_breakdown": attendance_breakdown,
-                    "overtime_pay": overtime_pay,
-                    "holiday_pay": holiday_pay,
+                    "loan_deduction": loan_deduction,
+                    "gov_deductions": gov_deductions,
                     "net_pay": net_pay,
+                    "loan_type_summary": loan_type_summary,
                 })
 
-        # Feedback for skipped employees
+        # --- Post-generation messages ---
         if skipped:
             skipped_str = ", ".join(skipped[:5])
             if len(skipped) > 5:
-                skipped_str += f" ... and {len(skipped)-5} more"
+                skipped_str += f" ... and {len(skipped) - 5} more"
             messages.warning(request, f"Some payrolls already exist and were skipped: {skipped_str}")
 
         messages.success(

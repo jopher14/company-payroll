@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import cast, Any, Optional, Union
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from datetime import time
@@ -1074,13 +1075,22 @@ def create_loan(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             loan = form.save(commit=False)
 
-            # auto-calculate end_date (if not already filled by form)
+            # Ensure loan_deduct is set exactly as entered
+            loan.loan_deduct = Decimal(request.POST.get("loan_deduct", "0"))
+
+            if not loan.loan_deduct or loan.loan_deduct <= 0:
+                loan.loan_deduct = loan.amount  # fallback if empty
+
+            if loan.start_date and loan.term_months:
+                loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
+
+            # Auto-calculate end_date
             if loan.start_date and loan.term_months:
                 loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
 
             loan.save()
             messages.success(request, f"Loan for {loan.employee.get_full_name()} created successfully.")
-            return redirect("loans:manage_loans")
+            return redirect("users:manage_loans")
     else:
         form = LoanForm()
 
