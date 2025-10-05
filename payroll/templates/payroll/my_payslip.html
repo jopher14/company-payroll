@@ -14,7 +14,7 @@
 
     <!-- Earnings Section -->
     <table class="table table-sm table-bordered mt-3">
-      <thead class="table-dark text-center">
+      <thead class="table-info text-center">
         <tr>
           <th>Earnings</th>
           <th>Amount (₱)</th>
@@ -55,35 +55,34 @@
     </table>
     {% endif %}
 
-    <!-- Loan Deduction Section -->
-    {% if payslip.loan_deduct|floatformat:2 != "0.00" %}
-    <table class="table table-sm table-bordered mt-3">
-      <thead class="table-danger text-center">
-        <tr>
-          <th>Loan Deductions</th>
-          <th>Amount (₱)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if payslip.loan_type_summary %}
-          {% for loan_type, amount in payslip.loan_type_summary.items %}
-            <tr>
-              <td style="text-transform: capitalize;">{{ loan_type }} Loan Deduction</td>
-              <td class="text-end">{{ amount|floatformat:2|intcomma }}</td>
-            </tr>
-          {% endfor %}
-        {% endif %}
-        <tr class="table-light fw-bold">
-          <td>Total Loan Deduction</td>
-          <td class="text-end">{{ payslip.loan_deduct|floatformat:2|intcomma }}</td>
-        </tr>
-      </tbody>
-    </table>
-    {% endif %}
+    {% if payslip.loan_deduction|floatformat:2 != "0.00" %}
+      <table class="table table-sm table-bordered mt-3">
+        <thead class="table-danger text-center">
+          <tr>
+            <th>Loan Deductions</th>
+            <th>Amount (₱)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if payslip.loan_type_summary %}
+            {% for loan_type, amount in payslip.loan_type_summary.items %}
+              <tr>
+                <td style="text-transform: capitalize;">{{ loan_type }} Loan Deduction</td>
+                <td class="text-end">{{ amount|floatformat:2|intcomma }}</td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+          <tr class="table-light fw-bold">
+            <td>Total Loan Deduction</td>
+            <td class="text-end">{{ payslip.loan_deduct|floatformat:2|intcomma }}</td>
+          </tr>
+        </tbody>
+      </table>
+      {% endif %}
 
     <!-- Deductions Section -->
     <table class="table table-sm table-bordered mt-3">
-      <thead class="table-dark text-center">
+      <thead class="table-danger text-center">
         <tr>
           <th>Deductions</th>
           <th>Amount (₱)</th>

@@ -146,7 +146,7 @@ class LoanAdmin(admin.ModelAdmin):
     list_display = (
         "employee",
         "loan_type",
-        "amount",
+        "loan_amount",
         "loan_deduct",
         "balance",
         "term_months",

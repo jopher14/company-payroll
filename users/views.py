@@ -1075,16 +1075,17 @@ def create_loan(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             loan = form.save(commit=False)
 
-            # Ensure loan_deduct is set exactly as entered
+            # Make sure deduction amount is valid
             loan.loan_deduct = Decimal(request.POST.get("loan_deduct", "0"))
-
             if not loan.loan_deduct or loan.loan_deduct <= 0:
-                loan.loan_deduct = loan.amount  # fallback if empty
+                loan.loan_deduct = loan.loan_amount  # fallback if empty
 
-            if loan.start_date and loan.term_months:
-                loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
+            # ✅ Initialize properly
+            loan.balance = loan.loan_amount
+            loan.is_active = True
+            loan.status = "OPEN"
 
-            # Auto-calculate end_date
+            # Auto compute end date
             if loan.start_date and loan.term_months:
                 loan.end_date = loan.start_date + relativedelta(months=loan.term_months)
 

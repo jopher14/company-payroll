@@ -32,11 +32,11 @@
               {% for loan in loans %}
               <tr>
                 <td>{{ loan.employee.get_full_name }}</td>
-                <td>{{ loan.loan_type }}</td>
-                <td>₱{{ loan.amount|floatformat:2 }}</td>
+                <td style="text-transform: capitalize;">{{ loan.loan_type }} Loan</td>
+                <td>₱{{ loan.loan_amount|floatformat:2 }}</td>
                 <td>
                   <strong>₱{{ loan.balance|floatformat:2 }}</strong>
-                  <small class="text-muted">(of ₱{{ loan.amount|floatformat:2 }})</small>
+                  <small class="text-muted">(of ₱{{ loan.loan_amount|floatformat:2 }})</small>
                 </td>
                 <td>{{ loan.term_months }} Months</td>
                 <td>{{ loan.start_date }}</td>

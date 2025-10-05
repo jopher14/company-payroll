@@ -218,7 +218,7 @@ class LoanForm(forms.ModelForm):
         fields = [
             "employee",
             "loan_type",
-            "amount",
+            "loan_amount",
             "loan_deduct",
             "balance",
             "start_date",
@@ -229,7 +229,7 @@ class LoanForm(forms.ModelForm):
         widgets = {
             "employee": forms.Select(attrs={"class": "form-select"}),
             "loan_type": forms.Select(attrs={"class": "form-select"}),
-            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "loan_amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "balance": forms.NumberInput(
                 attrs={
                     "class": "form-control",

@@ -172,7 +172,7 @@ class Payroll(models.Model):
             if loan.term_months <= 0:
                 continue
 
-            monthly_due = loan.amount / Decimal(loan.term_months)
+            monthly_due = loan.loan_amount / Decimal(loan.term_months)
             monthly_due = self.q(monthly_due)
 
             new_balance = max(Decimal("0.00"), loan.balance - monthly_due)

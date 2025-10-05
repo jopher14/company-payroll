@@ -260,10 +260,6 @@ def compute_loan_deduction(employee, period):
         deduction = Decimal("0.00")
         reason = ""
 
-        # Skip government loans
-        if loan.loan_type.lower() in ["sss loan", "pag-ibig loan", "philhealth loan"]:
-            continue
-
         if loan.loan_deduct and loan.loan_deduct > 0:
             # Split deduction for semi-monthly
             deduction = (loan.loan_deduct / Decimal("2.00")).quantize(Decimal("0.01"))
