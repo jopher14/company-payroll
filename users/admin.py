@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team
 from payroll.models import Payroll
 
 
@@ -167,3 +167,36 @@ class LoanAdmin(admin.ModelAdmin):
     )
     ordering = ("-start_date",)
     date_hierarchy = "start_date"
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ("name", "manager", "supervisor", "created_by", "created_at")
+    search_fields = ("name", "manager__first_name", "supervisor__first_name")
+    list_filter = ("manager", "supervisor", "created_by")
+    filter_horizontal = ("employees",)
+    ordering = ("name",)
+    readonly_fields = ("created_at",)
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                "name",
+                "manager",
+                "supervisor",
+                "employees",
+            ),
+        }),
+        ("Metadata", {
+            "fields": (
+                "created_by",
+                "created_at",
+            ),
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Auto-assign created_by to current HR user if not manually set."""
+        if not obj.created_by:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

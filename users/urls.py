@@ -74,4 +74,10 @@ urlpatterns = [
     path(route="create/", view=views.create_loan, name="create_loan"),
     path(route="<int:pk>/edit/", view=views.edit_loan, name="edit_loan"),
     path(route="<int:pk>/delete/", view=views.delete_loan, name="delete_loan"),
+
+    # Team
+    path(route="team/", view=views.team_list, name="team_list"),
+    path(route="team/create/", view=views.create_team, name="create_team"),
+    path(route="team/<int:pk>/edit/", view=views.edit_team, name="edit_team"),
+    path(route="team/<int:pk>/delete/", view=views.delete_team, name="delete_team"),
 ]

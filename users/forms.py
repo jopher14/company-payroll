@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan
+from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan, Team
 from datetime import time
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -47,6 +47,30 @@ class UserRegistrationForm(UserCreationForm):
                 for key, label in self.fields["role"].choices
                 if key != User.ADMIN
             ]
+
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name', 'manager', 'supervisor', 'employees']
+        widgets = {
+            'employees': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'manager': forms.Select(attrs={'class': 'form-select'}),
+            'supervisor': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter roles
+        self.fields['manager'].queryset = User.objects.filter(role='manager', is_superuser=False)
+        self.fields['supervisor'].queryset = User.objects.filter(role='supervisor', is_superuser=False)
+        self.fields['employees'].queryset = User.objects.filter(role='employee', is_superuser=False)
+
+        # Display only the user's full name (or username fallback)
+        self.fields['manager'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username}"
+        self.fields['supervisor'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username}"
+        self.fields['employees'].label_from_instance = lambda obj: f"{obj.get_full_name() or obj.username}"
 
 
 class LeaveForm(forms.ModelForm):

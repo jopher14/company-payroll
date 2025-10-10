@@ -32,20 +32,23 @@
           <div class="d-grid gap-2">
 
             {% if user.role == "human_resources" or user.is_superuser %}
-              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-primary">
-                👥 Manage Employees
-              </a>
-              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">
-                💰 Generate Payroll
-              </a>
               <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">
                 ➕ Create Announcement
+              </a>
+              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-dark">
+                👥 Manage Employees
+              </a>
+              <a href="{% url 'users:team_list' %}" class="btn btn-outline-dark">
+                🧑‍🤝‍🧑 Manage Teams
               </a>
               <a href="{% url 'users:manage_attendance' %}" class="btn btn-outline-dark">
                 ➕ Manually Log Attendance
               </a>
               <a href="{% url 'users:manage_loans' %}" class="btn btn-outline-dark">
                 🏦 Manage Loans
+              </a>
+              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-success">
+                💰 Generate Payroll
               </a>
             {% endif %}
 

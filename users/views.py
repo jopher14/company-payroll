@@ -4,8 +4,8 @@ from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from datetime import time
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse, HttpRequest
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan
-from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm, LoanForm
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team
+from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm, LoanForm, TeamForm
 from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -1130,3 +1130,53 @@ def delete_loan(request: HttpRequest, pk: int) -> HttpResponse:
         messages.success(request, "Loan deleted successfully.")
         return redirect("users:manage_loans")
     return render(request, "loans/confirm_delete.html", {"loan": loan})
+
+
+@login_required
+@user_passes_test(is_hr)
+def team_list(request: HttpRequest) -> HttpResponse:
+    teams = Team.objects.all().order_by('-created_at')
+    return render(request, "team/team_list.html", {"teams": teams})
+
+
+@login_required
+@user_passes_test(is_hr)
+def create_team(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = TeamForm(request.POST)
+        if form.is_valid():
+            team = form.save(commit=False)
+            team.created_by = request.user
+            team.save()
+            form.save_m2m()
+            messages.success(request, f"Team '{team.name}' created successfully!")
+            return redirect("users:team_list")
+    else:
+        form = TeamForm()
+    return render(request, "team/create_team.html", {"form": form})
+
+
+@login_required
+@user_passes_test(is_hr)
+def edit_team(request: HttpRequest, pk: int) -> HttpResponse:
+    team = get_object_or_404(Team, pk=pk)
+    if request.method == "POST":
+        form = TeamForm(request.POST, instance=team)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Team '{team.name}' updated successfully!")
+            return redirect("users:team_list")
+    else:
+        form = TeamForm(instance=team)
+    return render(request, "team/edit_team.html", {"form": form, "team": team})
+
+
+@login_required
+@user_passes_test(is_hr)
+def delete_team(request: HttpRequest, pk: int) -> HttpResponse:
+    team = get_object_or_404(Team, pk=pk)
+    if request.method == "POST":
+        team.delete()
+        messages.success(request, "Team deleted successfully!")
+        return redirect("users:team_list")
+    return render(request, "team/delete_team.html", {"team": team})

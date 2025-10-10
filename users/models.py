@@ -87,6 +87,40 @@ class User(AbstractUser):
         self.save()
 
 
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    manager = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="managed_teams",
+        limit_choices_to={'role': 'manager'}
+    )
+    supervisor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="supervised_teams",
+        limit_choices_to={'role': 'supervisor'}
+    )
+    employees = models.ManyToManyField(
+        User,
+        related_name="teams",
+        limit_choices_to={'role': 'employee'}
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_teams",
+        limit_choices_to={'role': 'human_resources'}
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Leave(models.Model):
     # Leave types
     HALF_DAY = "half_day"

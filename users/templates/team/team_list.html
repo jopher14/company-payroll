@@ -1,0 +1,37 @@
+{% extends "main/base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Team List</h3>
+  <a href="{% url 'users:create_team' %}" class="btn btn-primary mb-3">+ Create Team</a>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Manager</th>
+        <th>Supervisor</th>
+        <th>Employees</th>
+        <th>Created By</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for team in teams %}
+      <tr>
+        <td>{{ team.name }}</td>
+        <td>{{ team.manager }}</td>
+        <td>{{ team.supervisor }}</td>
+        <td>{{ team.employees.count }}</td>
+        <td>{{ team.created_by }}</td>
+        <td>
+          <a href="{% url 'users:edit_team' team.id %}" class="btn btn-sm btn-warning">Edit</a>
+          <a href="{% url 'users:delete_team' team.id %}" class="btn btn-sm btn-danger">Delete</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center">No teams yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
