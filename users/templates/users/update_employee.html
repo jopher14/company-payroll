@@ -6,6 +6,18 @@
 <div class="container mt-5" style="max-width: 900px;">
   <div class="card shadow p-4">
     <h3 class="mb-3">Update Employee: {{ employee.get_full_name|default:employee.username }}</h3>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Team Name:</label>
+      <div>
+        {% if teams %}
+          {% for team in teams %}
+            <strong>{{ team.name }}{% if not forloop.last %}, {% endif %}</strong>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">No Team Assigned</span>
+        {% endif %}
+      </div>
+    </div>
 
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}

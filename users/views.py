@@ -71,8 +71,20 @@ def logoutView(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def employee_list(request: HttpRequest) -> HttpResponse:
-    employees = User.objects.filter(is_superuser=False)  # only employees and exclude the super user
-    return render(request, "users/employee_list.html", {"employees": employees})
+    # Get all users except superusers/admins (optional)
+    employees = User.objects.exclude(is_superuser=True).select_related().prefetch_related(
+        'teams', 'supervised_teams', 'managed_teams'
+    )
+
+    # Combine all possible team relationships
+    for emp in employees:
+        emp.all_teams = (  # type: ignore[attr-defined]
+            emp.teams.all() |
+            emp.supervised_teams.all() |
+            emp.managed_teams.all()
+        ).distinct()
+
+    return render(request, 'users/employee_list.html', {'employees': employees})
 
 
 # --- EMPLOYEE ---
@@ -479,18 +491,19 @@ def edit_schedule(request, pk):
 @user_passes_test(is_hr)
 def update_employee(request: HttpRequest, pk) -> HttpResponse:
     employee = get_object_or_404(User, pk=pk)
+    form = EmployeeUpdateForm(request.POST or None, request.FILES or None, instance=employee)
 
-    if request.method == "POST":
-        form = EmployeeUpdateForm(request.POST, request.FILES, instance=employee)
-        if form.is_valid():
-            form.save()
-            return redirect('users:employee_list')
-    else:
-        form = EmployeeUpdateForm(instance=employee)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect('users:employee_list')
+
+    # Get team whether employee, supervisor, or manager
+    teams = employee.teams.all() | employee.supervised_teams.all() | employee.managed_teams.all()
 
     return render(request, 'users/update_employee.html', {
         'form': form,
-        'employee': employee
+        'employee': employee,
+        'teams': teams.distinct(),
     })
 
 

@@ -42,6 +42,15 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=EMPLOYEE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=ACTIVE)
 
+    # Team Name
+    team = models.ForeignKey(
+        "Team",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="members"
+    )
+
     # Photo
     photo = models.ImageField(upload_to='photos/', blank=True, null=True)
 
