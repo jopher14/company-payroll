@@ -14,30 +14,67 @@
     </thead>
     <tbody>
       {% for leave in leaves %}
-      <tr>
-        <td>{{ leave.employee.get_full_name|default:leave.employee.username }}</td>
-        <td>{{ leave.start_date }}</td>
-        <td>{{ leave.end_date }}</td>
-        <td>{{ leave.reason }}</td>
-        <td>
-          {% if request.user.role == "supervisor" and leave.employee.role == "employee" %}
-            <!-- Supervisor can approve/reject employee leaves -->
-            <a href="{% url 'users:approve_leave' leave.id %}" class="btn btn-sm btn-success">Approve</a>
-            <a href="{% url 'users:reject_leave' leave.id %}" class="btn btn-sm btn-danger">Reject</a>
-          {% elif request.user.role == "manager" %}
-            <!-- Manager can approve/reject both employee or supervisor leaves -->
-            <a href="{% url 'users:approve_leave' leave.id %}" class="btn btn-sm btn-success">Approve</a>
-            <a href="{% url 'users:reject_leave' leave.id %}" class="btn btn-sm btn-danger">Reject</a>
-          {% elif leave.employee == request.user %}
-            <!-- Employee/Supervisor can edit or delete their own leaves -->
-            <a href="{% url 'users:edit_leave' leave.id %}" class="btn btn-sm btn-warning">Edit</a>
-            <a href="{% url 'users:delete_leave' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
+        {# --- SUPERVISOR: can approve EMPLOYEE leaves in same team --- #}
+        {% if request.user.role == "supervisor" %}
+          {% if leave.employee.role == "employee" and leave.employee.teams.first == request.user.supervised_teams.first %}
+            <tr>
+              <td>{{ leave.employee.get_full_name|default:leave.employee.username }}</td>
+              <td>{{ leave.start_date }}</td>
+              <td>{{ leave.end_date }}</td>
+              <td>{{ leave.reason }}</td>
+              <td>
+                <a href="{% url 'users:approve_leave' leave.id %}" class="btn btn-sm btn-success">Approve</a>
+                <a href="{% url 'users:reject_leave' leave.id %}" class="btn btn-sm btn-danger">Reject</a>
+              </td>
+            </tr>
           {% endif %}
-        </td>
-      </tr>
+        {% endif %}
+
+        {# --- MANAGER: can approve EMPLOYEE or SUPERVISOR leaves in same team --- #}
+        {% if request.user.role == "manager" %}
+          {% if leave.employee.role == "employee" and leave.employee.teams.first == request.user.managed_teams.first %}
+            <tr>
+              <td>{{ leave.employee.get_full_name|default:leave.employee.username }}</td>
+              <td>{{ leave.start_date }}</td>
+              <td>{{ leave.end_date }}</td>
+              <td>{{ leave.reason }}</td>
+              <td>
+                <a href="{% url 'users:approve_leave' leave.id %}" class="btn btn-sm btn-success">Approve</a>
+                <a href="{% url 'users:reject_leave' leave.id %}" class="btn btn-sm btn-danger">Reject</a>
+              </td>
+            </tr>
+          {% elif leave.employee.role == "supervisor" and leave.employee.supervised_teams.first == request.user.managed_teams.first %}
+            <tr>
+              <td>{{ leave.employee.get_full_name|default:leave.employee.username }}</td>
+              <td>{{ leave.start_date }}</td>
+              <td>{{ leave.end_date }}</td>
+              <td>{{ leave.reason }}</td>
+              <td>
+                <a href="{% url 'users:approve_leave' leave.id %}" class="btn btn-sm btn-success">Approve</a>
+                <a href="{% url 'users:reject_leave' leave.id %}" class="btn btn-sm btn-danger">Reject</a>
+              </td>
+            </tr>
+          {% endif %}
+        {% endif %}
+
+        {# --- EMPLOYEE/SUPERVISOR: can view and manage their own leaves --- #}
+        {% if leave.employee == request.user %}
+          <tr>
+            <td>{{ leave.employee.get_full_name|default:leave.employee.username }}</td>
+            <td>{{ leave.start_date }}</td>
+            <td>{{ leave.end_date }}</td>
+            <td>{{ leave.reason }}</td>
+            <td>
+              <a href="{% url 'users:edit_leave' leave.id %}" class="btn btn-sm btn-warning">Edit</a>
+              <a href="{% url 'users:delete_leave' leave.id %}" class="btn btn-sm btn-danger">Delete</a>
+            </td>
+          </tr>
+        {% endif %}
+
       {% empty %}
-      <tr><td colspan="5" class="text-center">No pending leaves.</td></tr>
+        <tr><td colspan="5" class="text-center">No leave requests found.</td></tr>
       {% endfor %}
+
     </tbody>
   </table>
   <a href="{% url 'main:dashboard' %}" class="btn btn-secondary mb-3">Back</a>

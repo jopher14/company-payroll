@@ -180,33 +180,35 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "allDay": True,
             })
 
-    # ✅ Pending requests count
+    # ✅ Pending requests count (filtered by same team)
     pending_leaves_count = 0
     pending_overtimes_count = 0
     pending_schedule_changes_count = 0
 
-    if user.role == "manager":
-        # Manager sees ALL pending requests
+    if user.role in ["manager", "supervisor"]:
+        # Get all related teams (employee, supervisor, manager)
+        user_teams = user.teams.all() | user.supervised_teams.all() | user.managed_teams.all()
+
+        # Filter pending requests from employees in those teams
+        team_leaves = Leave.objects.filter(status="Pending", employee__teams__in=user_teams).distinct()
+        team_overtimes = Overtime.objects.filter(status="pending", employee__teams__in=user_teams).distinct()
+        team_changes = ScheduleChangeRequest.objects.filter(status="pending", employee__teams__in=user_teams).distinct()
+
+        # Supervisor only counts employee requests (not from other supervisors/managers)
+        if user.role == "supervisor":
+            team_leaves = team_leaves.filter(employee__role="employee").exclude(employee=user)
+            team_overtimes = team_overtimes.filter(employee__role="employee").exclude(employee=user)
+            team_changes = team_changes.filter(employee__role="employee").exclude(employee=user)
+
+        pending_leaves_count = team_leaves.count()
+        pending_overtimes_count = team_overtimes.count()
+        pending_schedule_changes_count = team_changes.count()
+
+    elif user.role == "human_resources":
+        # HR sees all pending requests
         pending_leaves_count = Leave.objects.filter(status="Pending").count()
         pending_overtimes_count = Overtime.objects.filter(status="pending").count()
         pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(status="pending").count()
-
-    elif user.role == "supervisor":
-        # Supervisor sees only pending requests from employees
-        pending_leaves_count = Leave.objects.filter(
-            status="Pending",
-            employee__role="employee"
-        ).exclude(employee=user).count()
-
-        pending_overtimes_count = Overtime.objects.filter(
-            status="pending",
-            employee__role="employee"
-        ).exclude(employee=user).count()
-
-        pending_schedule_changes_count = ScheduleChangeRequest.objects.filter(
-            status="pending",
-            employee__role="employee"
-        ).exclude(employee=user).count()
 
     context = {
         "user": user,
