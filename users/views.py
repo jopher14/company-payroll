@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from django.utils.timezone import localdate
 from dateutil.relativedelta import relativedelta
+from django.db.models import Q
 
 
 @login_required
@@ -1193,3 +1194,15 @@ def delete_team(request: HttpRequest, pk: int) -> HttpResponse:
         messages.success(request, "Team deleted successfully!")
         return redirect("users:team_list")
     return render(request, "team/delete_team.html", {"team": team})
+
+
+@login_required
+def my_current_team(request: HttpRequest) -> HttpResponse:
+    user = request.user
+
+    # Get all teams where the user is a member (employee, supervisor, or manager)
+    teams = Team.objects.filter(
+        Q(employees=user) | Q(supervisor=user) | Q(manager=user)
+    ).distinct()
+
+    return render(request, "team/my_current_team.html", {"teams": teams})

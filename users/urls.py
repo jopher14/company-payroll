@@ -80,4 +80,5 @@ urlpatterns = [
     path(route="team/create/", view=views.create_team, name="create_team"),
     path(route="team/<int:pk>/edit/", view=views.edit_team, name="edit_team"),
     path(route="team/<int:pk>/delete/", view=views.delete_team, name="delete_team"),
+    path(route="my-current-team/", view=views.my_current_team, name="my_current_team"),
 ]

@@ -1,0 +1,64 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}My Current Team{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">My Current Team</h2>
+
+    {% if teams %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Team Name</th>
+                        <th>Manager</th>
+                        <th>Supervisor</th>
+                        <th>Members</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                        <tr>
+                            <td>{{ team.name }}</td>
+                            <td>
+                                {% if team.manager %}
+                                    {{ team.manager.get_full_name|default:team.manager.username }}
+                                {% else %}
+                                    <span class="badge bg-danger">No Manager</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if team.supervisor %}
+                                    {{ team.supervisor.get_full_name|default:team.supervisor.username }}
+                                {% else %}
+                                    <span class="badge bg-danger">No Supervisor</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if team.employees.all %}
+                                    <ul class="mb-0 ps-3">
+                                        {% for member in team.employees.all %}
+                                            <li>{{ member.get_full_name|default:member.username }}</li>
+                                        {% empty %}
+                                            <span class="badge bg-danger">No Members</span>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center">
+            <span class="fw-bold text-danger">No Team Assigned</span>
+        </div>
+    {% endif %}
+</div>
+    </div>
+        <a href="{% url 'main:dashboard' %}" class="btn btn-outline-dark mt-3">Back</a>
+    </div>
+{% endblock %}
