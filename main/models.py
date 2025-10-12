@@ -6,6 +6,12 @@ class Announcement(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     event_date = models.DateField(null=True, blank=True)  # optional field for events
+    picture = models.ImageField(
+        upload_to='announcements/',
+        null=True,
+        blank=True,
+        help_text="Optional image for the announcement."
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

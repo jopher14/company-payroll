@@ -1,11 +1,10 @@
 {% extends "main/base.html" %}
-{% block title %}Create Announcement{% endblock %}
+{% block title %}Edit Announcement{% endblock %}
 
 {% block content %}
 <div class="container mt-5" style="max-width: 600px;">
   <div class="card shadow p-4">
-    <h3 class="mb-3">Create New Announcement</h3>
-    <!-- ✅ Added enctype -->
+    <h3 class="mb-3">Edit Announcement</h3>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       {% for field in form %}
@@ -17,8 +16,9 @@
           {% endfor %}
         </div>
       {% endfor %}
-      <button type="submit" class="btn btn-success w-100">Create Announcement</button>
+      <button type="submit" class="btn btn-success w-100">Save Changes</button>
     </form>
+    <a href="{% url 'main:announcement_list' %}" class="btn btn-secondary">← Back</a>
   </div>
 </div>
 {% endblock %}

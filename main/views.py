@@ -1,6 +1,6 @@
 import json
 from typing import cast, Any
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,  get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpRequest, HttpResponse
 from .forms import AnnouncementForm
@@ -26,6 +26,8 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         employee=user, status__in=["pending", "approved"]
     )
     approved_change_requests = {req.date: req for req in change_requests.filter(status="approved")}
+
+    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')
 
     events: list[dict[str, Any]] = []
 
@@ -217,6 +219,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "pending_leaves_count": pending_leaves_count,
         "pending_overtimes_count": pending_overtimes_count,
         "pending_schedule_changes_count": pending_schedule_changes_count,
+        "accouncements": announcements,
     }
 
     return render(request, "main/dashboard.html", context)
@@ -230,7 +233,7 @@ def is_hr(user):
 @user_passes_test(is_hr)
 def create_announcement(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        form = AnnouncementForm(request.POST)
+        form = AnnouncementForm(request.POST, request.FILES)
         if form.is_valid():
             announcement = form.save(commit=False)
             announcement.created_by = request.user
@@ -243,5 +246,28 @@ def create_announcement(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def announcement_list(request: HttpRequest) -> HttpResponse:
-    announcements = Announcement.objects.filter(is_active=True).order_by("-created_at")
-    return render(request, "announcement/announcement_list.html", {"announcements": announcements})
+    return redirect("main:dashboard")
+
+
+@login_required
+@user_passes_test(is_hr)
+def edit_announcement(request: HttpRequest, pk: int) -> HttpResponse:
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == "POST":
+        form = AnnouncementForm(request.POST, request.FILES, instance=announcement)
+        if form.is_valid():
+            form.save()
+            return redirect("main:dashboard")
+    else:
+        form = AnnouncementForm(instance=announcement)
+    return render(request, "announcement/announcement_edit.html", {"form": form, "announcement": announcement})
+
+
+@login_required
+@user_passes_test(is_hr)
+def delete_announcement(request: HttpRequest, pk: int) -> HttpResponse:
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == "POST":
+        announcement.delete()
+        return redirect("main:dashboard")
+    return render(request, "announcement/announcement_confirm_delete.html", {"announcement": announcement})
