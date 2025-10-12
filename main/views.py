@@ -7,7 +7,7 @@ from .forms import AnnouncementForm
 from .models import Announcement
 from users.models import Attendance, Leave, Schedule, EmployeeSchedule, ScheduleChangeRequest, Overtime
 from users.forms import User
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from calendar import monthrange
 from django.utils.timezone import localdate
 import holidays
@@ -237,16 +237,28 @@ def create_announcement(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             announcement = form.save(commit=False)
             announcement.created_by = request.user
+
+            # ✅ Auto-hide if event date already passed
+            if announcement.event_date and announcement.event_date < date.today():
+                announcement.is_active = False
+            else:
+                announcement.is_active = True
+
             announcement.save()
             return redirect("main:announcement_list")  # redirect to dashboard or announcements list
     else:
         form = AnnouncementForm()
+
     return render(request, "announcement/create_announcement.html", {"form": form})
 
 
 @login_required
 def announcement_list(request: HttpRequest) -> HttpResponse:
-    return redirect("main:dashboard")
+    announcements = Announcement.objects.filter(
+        is_active=True,
+        event_date__gte=date.today()  # show only upcoming or ongoing announcements
+    )
+    return render(request, "main/dashboard.html", {"announcements": announcements})
 
 
 @login_required
