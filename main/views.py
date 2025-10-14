@@ -299,7 +299,7 @@ def delete_announcement(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
-def get_calendar_events(request):
+def get_calendar_events(request: HttpRequest) -> HttpResponse:
     events = []
 
     attendances = Attendance.objects.filter(employee=request.user)
