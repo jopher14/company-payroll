@@ -331,3 +331,7 @@ class LoanForm(forms.ModelForm):
             cleaned_data["balance"] = amount
 
         return cleaned_data
+
+
+class AttendanceCSVUploadForm(forms.Form):
+    file = forms.FileField(label="Upload Attendance CSV")

@@ -48,6 +48,7 @@ urlpatterns = [
 
     # Attendance
     path(route="attendance/log/", view=views.log_attendance, name="log_attendance"),
+    path(route="attendance/upload/", view=views.upload_attendance_csv, name="upload_attendance_csv"),
     path(route='attendance/', view=views.attendance_list, name='attendance_list'),
     path(route="request-schedule-change/", view=views.request_schedule_change, name="request_schedule_change"),
     path(route="pending-schedule-changes/", view=views.pending_schedule_changes, name="pending_schedule_changes"),

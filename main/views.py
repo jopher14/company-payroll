@@ -12,6 +12,7 @@ from calendar import monthrange
 from django.utils.timezone import localdate
 import holidays
 from django.db.models import Q
+from django.http import JsonResponse
 
 
 @login_required
@@ -295,3 +296,28 @@ def delete_announcement(request: HttpRequest, pk: int) -> HttpResponse:
         announcement.delete()
         return redirect("main:dashboard")
     return render(request, "announcement/announcement_confirm_delete.html", {"announcement": announcement})
+
+
+@login_required
+def get_calendar_events(request):
+    events = []
+
+    attendances = Attendance.objects.filter(employee=request.user)
+    for a in attendances:
+        # Example: show "08:00 - 17:00"
+        time_display = ""
+        if a.time_in and a.time_out:
+            time_display = f"{a.time_in.strftime('%H:%M')} - {a.time_out.strftime('%H:%M')}"
+        elif a.time_in:
+            time_display = f"IN: {a.time_in.strftime('%H:%M')}"
+        elif a.time_out:
+            time_display = f"OUT: {a.time_out.strftime('%H:%M')}"
+
+        events.append({
+            "title": time_display or "No Time Recorded",
+            "start": a.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": "#3b82f6",  # blue
+        })
+
+    return JsonResponse(events, safe=False)
