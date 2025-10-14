@@ -234,68 +234,54 @@
               <div class="list-group mt-3">
 
                 {% for ann in announcement %}
-                  <div class="list-group-item shadow-sm mb-4 p-4 rounded fade-in-up">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                  {% if ann.is_active %}
+                    <div class="list-group-item shadow-sm mb-4 p-4 rounded fade-in-up">
+                      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
 
-                      <!-- Left Side: Content -->
-                      <div class="flex-grow-1">
-                        <h5 class="mb-1">{{ ann.title }}</h5>
+                        <!-- Left Side: Content -->
+                        <div class="flex-grow-1">
+                          <h5 class="mb-1">{{ ann.title }}</h5>
 
-                        {% if ann.event_date %}
-                          <span class="badge bg-info text-dark mb-2 d-inline-block">
-                            Event: {{ ann.event_date|date:"M d, Y" }}
-                          </span>
-                        {% endif %}
+                          {% if ann.event_date %}
+                            <span class="badge bg-info text-dark mb-2 d-inline-block">
+                              Event: {{ ann.event_date|date:"M d, Y" }}
+                            </span>
+                          {% endif %}
 
-                        <p class="mt-2 mb-3">{{ ann.description }}</p>
+                          <p class="mt-2 mb-3">{{ ann.description }}</p>
 
-                        {% if ann.picture %}
-                          <img src="{{ ann.picture.url }}" 
-                              alt="{{ ann.title }}" 
-                              class="img-fluid rounded mt-2" 
-                              style="max-width: 700px; height: auto; border-radius: 10px;">
+                          {% if ann.picture %}
+                            <img src="{{ ann.picture.url }}" 
+                                alt="{{ ann.title }}" 
+                                class="img-fluid rounded mt-2" 
+                                style="max-width: 700px; height: auto; border-radius: 10px;">
+                          {% endif %}
+                        </div>
 
-                          <!-- Image Modal -->
-                          <div class="modal fade" id="imageModal{{ ann.pk }}" tabindex="-1" aria-labelledby="imageModalLabel{{ ann.pk }}" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                              <div class="modal-content bg-dark">
-                                <div class="modal-body text-center p-0">
-                                  <img src="{{ ann.picture.url }}" alt="{{ ann.title }}" class="img-fluid rounded">
-                                </div>
-                                <div class="modal-footer border-0 justify-content-center">
-                                  <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                                    Close
-                                  </button>
-                                </div>
-                              </div>
+                        <!-- Right Side: Author + Buttons -->
+                        <div class="text-end">
+                          <small class="text-muted d-block mb-3">
+                            Posted by {{ ann.created_by.get_full_name|default:ann.created_by.username }}<br>
+                            {{ ann.created_at|naturaltime }}
+                          </small>
+
+                          {% if user.role == "human_resources" or user.is_superuser %}
+                            <div class="btn-group" role="group">
+                              <a href="{% url 'main:edit_announcement' ann.pk %}" 
+                                class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="bi bi-pencil"></i> Edit
+                              </a>
+                              <a href="{% url 'main:delete_announcement' ann.pk %}" 
+                                class="btn btn-sm btn-outline-danger" title="Delete Announcement">
+                                <i class="bi bi-trash"></i> Delete
+                              </a>
                             </div>
-                          </div>
-                        {% endif %}
+                          {% endif %}
+                        </div>
+
                       </div>
-
-                      <!-- Right Side: Author + Buttons -->
-                      <div class="text-end">
-                        <small class="text-muted d-block mb-3">
-                          Posted by {{ ann.created_by.get_full_name|default:ann.created_by.username }}<br>
-                          {{ ann.created_at|naturaltime }}
-                        </small>
-
-                        {% if user.role == "human_resources" or user.is_superuser %}
-                          <div class="btn-group" role="group">
-                            <a href="{% url 'main:edit_announcement' ann.pk %}" 
-                              class="btn btn-sm btn-outline-primary" title="Edit">
-                              <i class="bi bi-pencil"></i> Edit
-                            </a>
-                            <a href="{% url 'main:delete_announcement' ann.pk %}" 
-                              class="btn btn-sm btn-outline-danger" title="Delete Announcement">
-                              <i class="bi bi-trash"></i> Delete
-                            </a>
-                          </div>
-                        {% endif %}
-                      </div>
-
                     </div>
-                  </div>
+                  {% endif %}
                 {% empty %}
                   <div class="alert alert-secondary text-center">
                     No announcements found.

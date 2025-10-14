@@ -11,6 +11,7 @@ from datetime import timedelta, datetime, date
 from calendar import monthrange
 from django.utils.timezone import localdate
 import holidays
+from django.db.models import Q
 
 
 @login_required
@@ -254,11 +255,22 @@ def create_announcement(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def announcement_list(request: HttpRequest) -> HttpResponse:
-    announcements = Announcement.objects.filter(
-        is_active=True,
-        event_date__gte=date.today()  # show only upcoming or ongoing announcements
+    # ✅ 1. Auto-hide expired announcements
+    expired_announcements = Announcement.objects.filter(
+        event_date__lt=date.today(),
+        is_active=True
     )
-    return render(request, "main/dashboard.html", {"announcements": announcements})
+    if expired_announcements.exists():
+        expired_announcements.update(is_active=False)
+
+    # ✅ 2. Fetch active + valid announcements (upcoming or general)
+    announcements = Announcement.objects.filter(
+        Q(is_active=True),
+        Q(event_date__isnull=True) | Q(event_date__gte=date.today())
+    ).order_by('-created_at')
+
+    # ✅ 3. Render dashboard
+    return render(request, "main/dashboard.html", {"announcement": announcements})
 
 
 @login_required
