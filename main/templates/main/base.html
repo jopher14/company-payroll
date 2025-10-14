@@ -158,7 +158,7 @@
         clearInterval(inactivityInterval);
         inactivityCountdown = 60; // reset countdown
         inactivityCountdownEl.textContent = inactivityCountdown;
-        inactivityTimer = setTimeout(showInactivityWarning, 2 * 60 * 1000); // 2 mins inactivity
+        inactivityTimer = setTimeout(showInactivityWarning, 5 * 60 * 1000); // 5 mins inactivity
     }
 
     function showInactivityWarning() {
