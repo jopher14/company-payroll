@@ -29,7 +29,7 @@
                     <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-arrow-left me-1"></i> Back
                     </a>
-                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                    <button id="upload-btn" type="submit" class="btn btn-primary btn-sm px-3" disabled>
                         <i class="bi bi-cloud-upload me-1"></i> Upload
                     </button>
                 </div>
@@ -63,5 +63,23 @@
             }, false)
         })
     })()
+</script>
+
+<!-- ✅ Add this script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    if (fileInput && uploadBtn) {
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                uploadBtn.removeAttribute('disabled');
+            } else {
+                uploadBtn.setAttribute('disabled', true);
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
