@@ -42,6 +42,7 @@ jobs:
       - name: Run Django tests
         run: |
           python manage.py test || pytest
+
   frontend-build:
     name: Node.js Frontend Build
     runs-on: ubuntu-latest
