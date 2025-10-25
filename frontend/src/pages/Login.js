@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { login } from "./auth";
+import { login } from "../api/auth";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     try {
       await login(username, password);
-      setSuccess("✅ Login successful!");
+      navigate("/dashboard"); // ✅ Redirect to dashboard
     } catch (err) {
       setError("❌ Invalid credentials or server error.");
     }
@@ -41,7 +41,6 @@ const Login = () => {
         <button type="submit">Login</button>
       </form>
       {error && <p style={{ color: "red" }}>{error}</p>}
-      {success && <p style={{ color: "green" }}>{success}</p>}
     </div>
   );
 };
