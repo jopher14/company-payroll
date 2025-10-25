@@ -301,8 +301,8 @@ def delete_announcement(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def get_calendar_events(request: HttpRequest) -> HttpResponse:
     events = []
-
-    attendances = Attendance.objects.filter(employee=request.user)
+    user = cast(User, request.user)
+    attendances = Attendance.objects.filter(employee=user)
     for a in attendances:
         # Example: show "08:00 - 17:00"
         time_display = ""
