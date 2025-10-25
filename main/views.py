@@ -13,6 +13,8 @@ from django.utils.timezone import localdate
 import holidays
 from django.db.models import Q
 from django.http import JsonResponse
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
 @login_required
@@ -321,3 +323,8 @@ def get_calendar_events(request: HttpRequest) -> HttpResponse:
         })
 
     return JsonResponse(events, safe=False)
+
+
+@api_view(['GET'])
+def hello(request: HttpRequest) -> HttpResponse:
+    return Response({"message": "Hello from Django!"})
