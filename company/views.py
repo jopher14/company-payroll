@@ -15,6 +15,7 @@ def chrome_devtools_config(request: HttpRequest) -> HttpResponse:
 def set_csrf_token(request: HttpRequest) -> HttpResponse:
     return JsonResponse({"message": "CSRF cookie set"})
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def protected_view(request):

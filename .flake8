@@ -3,3 +3,5 @@ max-line-length = 250
 exclude =
     */migrations/*,
     */venv/*,
+
+extend-exclude = frontend

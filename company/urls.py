@@ -35,12 +35,11 @@ urlpatterns = [
     # payroll app
     path('payroll/', include('payroll.urls')),
 
+    # FrontEnd
     path(route=".well-known/appspecific/com.chrome.devtools.json", view=views.chrome_devtools_config),
-
-     path('api/', include('main.urls')),
-     path('set-csrf/', views.set_csrf_token, name='set-csrf'),
-     path('api/protected/', views.protected_view, name='protected'),
-
+    path('api/', include('main.urls')),
+    path(route='set-csrf/', view=views.set_csrf_token, name='set-csrf'),
+    path(route='api/protected/', view=views.protected_view, name='protected'),
 ]
 
 if settings.DEBUG:
