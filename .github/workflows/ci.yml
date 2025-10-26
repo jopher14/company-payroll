@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
+  # ---------- Backend ----------
   backend-tests:
     name: Django Backend Tests
     strategy:
@@ -52,3 +53,33 @@ jobs:
       - name: Run Django tests
         run: |
           python manage.py test || pytest
+
+
+  # ---------- Frontend ----------
+  frontend-build:
+    name: React Frontend Build
+    needs: backend-tests  # runs after backend passes
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Verify React Scripts
+        run: npx react-scripts --version
+
+      - name: Build React App
+        run: npm run build
