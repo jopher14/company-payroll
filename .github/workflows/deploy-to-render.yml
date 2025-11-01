@@ -37,15 +37,17 @@ jobs:
       - name: Deploy to Render (first attempt)
         id: deploy1
         continue-on-error: true
-        uses: render-oss/action-deploy@v1
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          apiKey: ${{ secrets.RENDER_API_KEY }}
-          serviceId: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          wait-for-success: true
 
       - name: Retry deploy with cache cleared if first failed
         if: steps.deploy1.outcome == 'failure'
-        uses: render-oss/action-deploy@v1
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          apiKey: ${{ secrets.RENDER_API_KEY }}
-          serviceId: ${{ secrets.RENDER_SERVICE_ID }}
-          clearCache: true
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          wait-for-success: true
+          clear-cache: true
