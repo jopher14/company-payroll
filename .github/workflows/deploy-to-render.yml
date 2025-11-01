@@ -3,51 +3,16 @@ name: Deploy to Render
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # allows manual trigger
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.13
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Build React frontend
-        working-directory: frontend
+      - uses: actions/checkout@v4
+      - name: Deploy via Render API
         run: |
-          npm ci
-          npm run build
-
-      - name: Install Python dependencies
-        run: |
-          pip install -r requirements.txt
-          python manage.py collectstatic --noinput
-
-      - name: Deploy to Render (first attempt)
-        id: deploy1
-        continue-on-error: true
-        uses: johnbeynon/render-deploy-action@v0.0.8
-        with:
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          wait-for-success: true
-
-      - name: Retry deploy with cache cleared if first failed
-        if: steps.deploy1.outcome == 'failure'
-        uses: johnbeynon/render-deploy-action@v0.0.8
-        with:
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          wait-for-success: true
-          clear-cache: true
+          curl -X POST https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json"
