@@ -4,13 +4,8 @@ services:
     env: python
     plan: free
     buildCommand: |
-      set -e
-      cd frontend
-      npm install
-      npm run build
-      cd ..
-      pip install --upgrade pip
-      pip install -r requirements.txt
+      cd frontend && npm install && npm run build && cd .. && \
+      pip install -r requirements.txt && \
       python manage.py collectstatic --noinput
     startCommand: gunicorn company_payroll.wsgi:application
     envVars:
