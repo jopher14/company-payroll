@@ -4,27 +4,82 @@ services:
     env: python
     plan: free
 
+    # ---------------- Build ----------------
     buildCommand: |
-      # ---- Build React Frontend ----
-      cd frontend
-      npm install
-      npm run build
-      cd ..
+      set -e
+      set -x
 
-      # ---- Build Django Backend ----
+      echo "📦 Installing Python dependencies..."
+      pip install --upgrade pip
       pip install -r requirements.txt
+
+      echo "🧱 Collecting Django static files..."
       python manage.py collectstatic --noinput
 
+      echo "⚙️ Building React frontend..."
+      FRONTEND_DIR="frontend"
+      NODE_CACHE_DIR="$HOME/.cache/node_modules"
+
+      if [ -d "$FRONTEND_DIR" ]; then
+        echo "➡️ Found frontend folder: $FRONTEND_DIR"
+
+        # Restore cached node_modules if available
+        if [ -d "$NODE_CACHE_DIR" ]; then
+          echo "♻️ Restoring cached Node modules..."
+          cp -r "$NODE_CACHE_DIR" "$FRONTEND_DIR/node_modules" || true
+        fi
+
+        (
+          cd "$FRONTEND_DIR" || exit 1
+          echo "Installing Node dependencies..."
+          npm install
+          echo "Running React build..."
+          npm run build
+
+          # Save node_modules to cache
+          echo "💾 Caching Node modules..."
+          rm -rf "$NODE_CACHE_DIR"
+          cp -r node_modules "$NODE_CACHE_DIR"
+        )
+
+        echo "📁 Copying React build into Django static folder..."
+        if [ "$(uname)" = "Linux" ]; then
+          mkdir -p backend/static
+          rm -rf backend/static/*
+          cp -r "$FRONTEND_DIR/build/"* backend/static/
+        else
+          powershell -Command "
+            \$staticDir = 'backend\static';
+            if (Test-Path \$staticDir) { Remove-Item \$staticDir -Recurse -Force };
+            New-Item -ItemType Directory -Force -Path \$staticDir;
+            Copy-Item -Path '$FRONTEND_DIR\build\*' -Destination \$staticDir -Recurse -Force
+          "
+        fi
+      else
+        echo "⚠️ Frontend folder not found, skipping React build"
+      fi
+
+    # ---------------- Start ----------------
     startCommand: gunicorn company_payroll.wsgi:application
 
+    # ---------------- Post Deploy ----------------
     postDeployCommand: |
       echo "🚀 Running Django migrations..."
       python manage.py migrate --noinput
 
+    # ---------------- Environment Variables ----------------
     envVars:
       - key: DEBUG
         value: False
+
       - key: DJANGO_SETTINGS_MODULE
         value: company_payroll.settings
+
       - key: PYTHON_VERSION
         value: 3.13
+
+      # Optional: Uncomment if using a database on Render
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: company-payroll-db
+      #     property: connectionString
