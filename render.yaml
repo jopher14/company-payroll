@@ -3,11 +3,24 @@ services:
     name: company-payroll
     env: python
     plan: free
+
     buildCommand: |
-      cd frontend && npm install && npm run build && cd .. && \
-      pip install -r requirements.txt && \
+      # ---- Build React Frontend ----
+      cd frontend
+      npm install
+      npm run build
+      cd ..
+
+      # ---- Build Django Backend ----
+      pip install -r requirements.txt
       python manage.py collectstatic --noinput
+
     startCommand: gunicorn company_payroll.wsgi:application
+
+    postDeployCommand: |
+      echo "🚀 Running Django migrations..."
+      python manage.py migrate --noinput
+
     envVars:
       - key: DEBUG
         value: False
