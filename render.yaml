@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: company-payroll
+    env: python
+    plan: free
+    buildCommand: |
+      cd frontend && npm install && npm run build && cd ..
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: gunicorn company_payroll.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: DJANGO_SETTINGS_MODULE
+        value: company_payroll.settings
+      - key: PYTHON_VERSION
+        value: 3.13
