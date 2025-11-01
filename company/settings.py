@@ -11,23 +11,33 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import os  # ✅ NEW
 from corsheaders.defaults import default_headers
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")  # ✅ Use env var for production
-DEBUG = os.getenv("DEBUG", "False") == "True"  # ✅ Render sets DEBUG=False
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = "django-insecure-e(zuzy@5u$mq^^az=e7=zrn^h%mp#z97p0y($#bflxe4as20_1"
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+ALLOWED_HOSTS = ["your-app-name.onrender.com"]
+
+# for creating a webserver locally
 ALLOWED_HOSTS = [
-    "localhost",
     "127.0.0.1",
+    "localhost",
     "192.168.100.154",
-    "192.168.1.46",
-    "company-payroll.onrender.com",  # ✅ Replace with your actual Render URL
+    "192.168.1.46"
 ]
 
-# INSTALLED_APPS unchanged
+
+# Application definition
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -42,20 +52,19 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "django.contrib.humanize",
 
-    "corsheaders",
-    "rest_framework",
+    'corsheaders',
+    'rest_framework',
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
 }
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # ✅ NEW: For static file serving on Render
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -65,21 +74,23 @@ MIDDLEWARE = [
     "users.middleware.OneSessionPerUserMiddleware",
 ]
 
-# ✅ Allow frontend (Render + local dev)
-CORS_ALLOW_HEADERS = list(default_headers) + ["content-type", "authorization"]
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'content-type',
+    'authorization',
+]
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.100.154:3000",
-    "https://company-payroll.onrender.com",  # ✅ Render frontend
+    "http://192.168.100.154:3000",  # your local network IP
 ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.100.154:3000",
-    "https://company-payroll.onrender.com",  # ✅ Render frontend
 ]
 
 ROOT_URLCONF = "company.urls"
@@ -87,7 +98,7 @@ ROOT_URLCONF = "company.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "frontend" / "build"],  # ✅ React build folder
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -101,7 +112,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "company.wsgi.application"
 
-# DATABASE
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -109,24 +123,61 @@ DATABASES = {
     }
 }
 
-# STATIC & MEDIA
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # ✅ required for Render
-STATICFILES_DIRS = [BASE_DIR / "frontend" / "build" / "static"]  # ✅ React build assets
+
+# Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
+LANGUAGE_CODE = "en-us"
+
+TIME_ZONE = "Asia/Manila"
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+STATIC_URL = "static/"
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "users.User"
+
+# profile photo
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ✅ Optional: Compress & serve static files efficiently on Render
-STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-}
+LOGIN_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'main:dashboard'
+LOGOUT_REDIRECT_URL = 'users:login'
 
-# Remaining settings unchanged...
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-AUTH_USER_MODEL = "users.User"
-LOGIN_URL = "users:login"
-LOGIN_REDIRECT_URL = "main:dashboard"
-LOGOUT_REDIRECT_URL = "users:login"
+# 15 minutes of inactivity
 SESSION_COOKIE_AGE = 15 * 60
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Keep only the storage setting
 MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
