@@ -7,8 +7,6 @@ services:
     # ---------------- Build ----------------
     buildCommand: |
       set -e
-      set -x
-
       echo "📦 Installing Python dependencies..."
       pip install --upgrade pip
       pip install -r requirements.txt
@@ -16,51 +14,22 @@ services:
       echo "🧱 Collecting Django static files..."
       python manage.py collectstatic --noinput
 
-      echo "⚙️ Building React frontend..."
       FRONTEND_DIR="frontend"
-      NODE_CACHE_DIR="$HOME/.cache/node_modules"
-
       if [ -d "$FRONTEND_DIR" ]; then
-        echo "➡️ Found frontend folder: $FRONTEND_DIR"
-
-        # Restore cached node_modules if available
-        if [ -d "$NODE_CACHE_DIR" ]; then
-          echo "♻️ Restoring cached Node modules..."
-          cp -r "$NODE_CACHE_DIR" "$FRONTEND_DIR/node_modules" || true
-        fi
-
-        (
-          cd "$FRONTEND_DIR" || exit 1
-          echo "Installing Node dependencies..."
-          npm install
-          echo "Running React build..."
-          npm run build
-
-          # Save node_modules to cache
-          echo "💾 Caching Node modules..."
-          rm -rf "$NODE_CACHE_DIR"
-          cp -r node_modules "$NODE_CACHE_DIR"
-        )
-
+        echo "➡️ Building React frontend..."
+        cd "$FRONTEND_DIR"
+        npm ci || npm install
+        npm run build
+        cd ..
         echo "📁 Copying React build into Django static folder..."
-        if [ "$(uname)" = "Linux" ]; then
-          mkdir -p backend/static
-          rm -rf backend/static/*
-          cp -r "$FRONTEND_DIR/build/"* backend/static/
-        else
-          powershell -Command "
-            \$staticDir = 'backend\static';
-            if (Test-Path \$staticDir) { Remove-Item \$staticDir -Recurse -Force };
-            New-Item -ItemType Directory -Force -Path \$staticDir;
-            Copy-Item -Path '$FRONTEND_DIR\build\*' -Destination \$staticDir -Recurse -Force
-          "
-        fi
+        mkdir -p static
+        cp -r "$FRONTEND_DIR/build/"* static/
       else
-        echo "⚠️ Frontend folder not found, skipping React build"
+        echo "⚠️ No frontend directory found, skipping React build."
       fi
 
     # ---------------- Start ----------------
-    startCommand: gunicorn company_payroll.wsgi:application
+    startCommand: gunicorn company.wsgi:application
 
     # ---------------- Post Deploy ----------------
     postDeployCommand: |
@@ -71,15 +40,11 @@ services:
     envVars:
       - key: DEBUG
         value: False
-
       - key: DJANGO_SETTINGS_MODULE
-        value: company_payroll.settings
-
+        value: company.settings
       - key: PYTHON_VERSION
-        value: 3.13
-
-      # Optional: Uncomment if using a database on Render
-      # - key: DATABASE_URL
-      #   fromDatabase:
-      #     name: company-payroll-db
-      #     property: connectionString
+        value: 3.13.3
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://company-payroll.vercel.app
