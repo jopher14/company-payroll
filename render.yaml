@@ -4,41 +4,24 @@ services:
     env: python
     plan: free
 
-    # ---------------- Build ----------------
     buildCommand: |
       set -e
-      set -x
-      echo "📦 Installing dependencies..."
+      echo "🚀 Installing Python dependencies..."
       pip install -r requirements.txt
-      python manage.py collectstatic --noinput
 
-      FRONTEND_DIR="frontend"
-      if [ -d "$FRONTEND_DIR" ]; then
-        echo "⚛️ Building React frontend..."
-        (cd "$FRONTEND_DIR" && npm ci && npm run build)
-        mkdir -p backend/static
-        cp -r "$FRONTEND_DIR"/build/* backend/static/
+      echo "⚛️ Building React frontend..."
+      if [ -d "frontend" ]; then
+        (cd "frontend" && npm ci && npm run build)
+        echo "📁 Copying React build to Django static folder..."
+        mkdir -p static
+        cp -r frontend/build/* static/
       else
-        echo "⚠️ No frontend directory found, skipping React build."
+        echo "⚠️ Frontend folder not found. Skipping React build."
       fi
 
-    # ---------------- Start ----------------
-    startCommand: gunicorn company.wsgi:application
+      echo "🧱 Collecting static files..."
+      python manage.py collectstatic --noinput
 
-    # ---------------- Post Deploy ----------------
-    postDeployCommand: |
-      echo "🚀 Running Django migrations..."
-      python manage.py migrate --noinput
-
-    # ---------------- Environment Variables ----------------
-    envVars:
-      - key: DEBUG
-        value: False
-      - key: DJANGO_SETTINGS_MODULE
-        value: company.settings
-      - key: PYTHON_VERSION
-        value: 3.13.3
-      - key: ALLOWED_HOSTS
-        value: .onrender.com
-      - key: CORS_ALLOWED_ORIGINS
-        value: https://company-payroll.vercel.app
+    startCommand: |
+      python manage.py migrate
+      gunicorn company.wsgi:application --bind 0.0.0.0:$PORT
