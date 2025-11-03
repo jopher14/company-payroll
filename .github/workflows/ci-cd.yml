@@ -10,10 +10,10 @@ jobs:
   # ---------- 🧪 BACKEND TESTS ----------
   backend-tests:
     name: Django Backend Tests
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -43,11 +43,11 @@ jobs:
   # ---------- ⚛️ FRONTEND BUILD ----------
   frontend-build:
     name: React Frontend Build
-    runs-on: ${{ matrix.os }}
-    needs: backend-tests
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    needs: backend-tests
     defaults:
       run:
         working-directory: frontend
