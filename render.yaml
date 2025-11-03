@@ -20,7 +20,6 @@ services:
         cd "$FRONTEND_DIR"
         npm ci || npm install
         npm run build
-        cd ..
         echo "📁 Copying React build into Django static folder..."
         mkdir -p static
         cp -r "$FRONTEND_DIR/build/"* static/
