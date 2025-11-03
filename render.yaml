@@ -7,22 +7,17 @@ services:
     # ---------------- Build ----------------
     buildCommand: |
       set -e
-      echo "📦 Installing Python dependencies..."
-      pip install --upgrade pip
+      set -x
+      echo "📦 Installing dependencies..."
       pip install -r requirements.txt
-
-      echo "🧱 Collecting Django static files..."
       python manage.py collectstatic --noinput
 
       FRONTEND_DIR="frontend"
       if [ -d "$FRONTEND_DIR" ]; then
-        echo "➡️ Building React frontend..."
-        cd "$FRONTEND_DIR"
-        npm ci || npm install
-        npm run build
-        echo "📁 Copying React build into Django static folder..."
-        mkdir -p static
-        cp -r "$FRONTEND_DIR/build/"* static/
+        echo "⚛️ Building React frontend..."
+        (cd "$FRONTEND_DIR" && npm ci && npm run build)
+        mkdir -p backend/static
+        cp -r "$FRONTEND_DIR"/build/* backend/static/
       else
         echo "⚠️ No frontend directory found, skipping React build."
       fi

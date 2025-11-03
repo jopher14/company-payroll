@@ -24,20 +24,35 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install backend dependencies
-        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+      - name: Install backend dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run migrations
-        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+      - name: Install backend dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          python manage.py makemigrations --check --dry-run
+          python manage.py migrate
+
+      - name: Run migrations (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
           python manage.py makemigrations --check --dry-run
           python manage.py migrate
 
       - name: Run Django tests
-        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
         run: python manage.py test || pytest
 
   # ---------- ⚛️ FRONTEND BUILD ----------
@@ -63,14 +78,21 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+      - name: Install frontend dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          npm ci
+          npm install react-scripts --save
+
+      - name: Install frontend dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
           npm ci
           npm install react-scripts --save
 
       - name: Build React App
-        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
         run: npm run build
 
       - name: Upload build artifact
@@ -105,21 +127,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Copy React build into Django static folder (Linux)
-        if: runner.os == 'Linux'
+      - name: Copy React build into Django static folder
         run: |
           mkdir -p backend/static
           rm -rf backend/static/*
           cp -r frontend/build/* backend/static/
-
-      - name: Copy React build into Django static folder (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $staticDir = "backend\static"
-          if (Test-Path $staticDir) { Remove-Item $staticDir -Recurse -Force }
-          New-Item -ItemType Directory -Force -Path $staticDir
-          Copy-Item -Path "frontend\build\*" -Destination $staticDir -Recurse -Force
 
       - name: Trigger Render deploy
         uses: render-examples/deploy-action@v1
