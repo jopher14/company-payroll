@@ -91,6 +91,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.100.154:3000",
+    "https://company-payroll.onrender.com",
 ]
 
 ROOT_URLCONF = "company.urls"
