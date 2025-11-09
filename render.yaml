@@ -4,24 +4,15 @@ services:
     env: python
     plan: free
 
-    buildCommand: |
-      set -e
-      echo "🚀 Installing Python dependencies..."
-      pip install -r requirements.txt
-
-      echo "⚛️ Building React frontend..."
-      if [ -d "frontend" ]; then
-        (cd "frontend" && npm ci && npm run build)
-        echo "📁 Copying React build to Django static folder..."
-        mkdir -p static
-        cp -r frontend/build/* static/
-      else
-        echo "⚠️ Frontend folder not found. Skipping React build."
-      fi
-
-      echo "🧱 Collecting static files..."
+    buildCommand: >
+      pip install -r requirements.txt &&
+      cd frontend && npm ci && npm run build && cd .. &&
       python manage.py collectstatic --noinput
 
     startCommand: |
       python manage.py migrate
       gunicorn company.wsgi:application --bind 0.0.0.0:$PORT
+
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: company.settings
