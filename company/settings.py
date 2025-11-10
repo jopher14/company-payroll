@@ -161,9 +161,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [
-    BASE_DIR / "backend" / "static",  # if you’re copying React build here
-]
+STATICFILES_DIRS = [BASE_DIR / "frontend" / "build" / "static"]  # if you’re copying React build here
+TEMPLATES[0]["DIRS"] = [BASE_DIR / "frontend" / "build"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
