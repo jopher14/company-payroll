@@ -2,19 +2,23 @@ services:
   - type: web
     name: company-payroll
     env: python
+
     buildCommand: |
+      set -e  # stop on error
+
+      # ----- Build React frontend -----
+      npm --prefix "frontend" ci || npm --prefix "frontend" install
+      npm --prefix "frontend" run build
+
+      # ----- Install backend dependencies -----
+      pip install --upgrade pip
       pip install -r requirements.txt
+
+      # ----- Collect static files -----
       python manage.py collectstatic --noinput
-    startCommand: gunicorn backend.wsgi:application
+
+    startCommand: gunicorn company.wsgi:application
+
     envVars:
       - key: DEBUG
         value: False
-
-  - type: static
-    name: react-frontend
-    env: static
-    buildCommand: |
-      cd frontend
-      npm install
-      npm run build
-    staticPublishPath: frontend/build
