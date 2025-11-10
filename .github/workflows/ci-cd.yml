@@ -70,7 +70,7 @@ jobs:
           path: frontend/build
 
 
-  # ---------- 🚀 DEPLOY TO RENDER ----------
+# ---------- 🚀 DEPLOY TO RENDER ----------
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           cp -r frontend/build/* backend/static/
 
       - name: Trigger Render deploy
-        uses: render-examples/deploy-action@v1
-        with:
-          serviceId: ${{ secrets.RENDER_SERVICE_ID }}
-          apiKey: ${{ secrets.RENDER_API_KEY }}
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          curl -X POST "$RENDER_DEPLOY_HOOK"
