@@ -103,7 +103,4 @@ jobs:
           cp -r frontend/build/* backend/static/
 
       - name: Trigger Render deploy
-        env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
-        run: |
-          curl -X POST "$RENDER_DEPLOY_HOOK"
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
