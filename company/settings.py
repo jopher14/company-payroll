@@ -32,7 +32,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "192.168.100.154",
-    "192.168.1.46"
+    "192.168.1.46",
+    "company-payroll.onrender.com",
 ]
 
 
@@ -83,6 +84,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.100.154:3000",  # your local network IP
+    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -92,6 +94,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://192.168.100.154:3000",
     "https://company-payroll.onrender.com",
+
 ]
 
 ROOT_URLCONF = "company.urls"
