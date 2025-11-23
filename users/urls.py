@@ -1,5 +1,5 @@
 from django.urls import path
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
 from . import views
@@ -18,6 +18,12 @@ urlpatterns = [
     path(route="logout/", view=LogoutView.as_view(template_name="users/logged_out.html"), name='logout'),
 
     path(route="multi-login-detected/", view=multi_login_detected_view, name="multi_login_detected"),
+
+    # Change password
+    path(route='password_reset/', view=PasswordResetView.as_view(template_name='users/password_reset.html'), name='password_reset'),
+    path(route='password_reset/done/', view=PasswordResetDoneView.as_view(template_name='users/password_reset_done.html'), name='password_reset_done'),
+    path(route='reset/<uidb64>/<token>/', view=PasswordResetConfirmView.as_view(template_name='users/password_reset_confirm.html'), name='password_reset_confirm'),
+    path(route='reset/done/', view=PasswordResetCompleteView.as_view(template_name='users/password_reset_complete.html'), name='password_reset_complete'),
 
     # HR only
     path(route="register/", view=views.register, name="register"),

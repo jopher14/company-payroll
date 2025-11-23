@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan, Team
 from datetime import time
 from dateutil.relativedelta import relativedelta
@@ -335,3 +335,11 @@ class LoanForm(forms.ModelForm):
 
 class AttendanceCSVUploadForm(forms.Form):
     file = forms.FileField(label="Upload Attendance CSV")
+
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['old_password'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
+        self.fields['new_password1'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
+        self.fields['new_password2'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
