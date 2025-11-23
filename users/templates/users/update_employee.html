@@ -50,6 +50,12 @@
         </div>
       </div>
 
+      <!-- Set Schedule -->
+      <a href="{% url 'users:manage_schedule' %}?employee_id={{ emp.pk }}"
+          class="btn btn-sm btn-primary">
+        <i class="bi bi-calendar-event"></i> Set Schedule
+      </a>
+
       <!-- Buttons -->
       <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
       <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
