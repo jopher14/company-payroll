@@ -74,20 +74,51 @@ def logoutView(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def employee_list(request: HttpRequest) -> HttpResponse:
-    # Get all users except superusers/admins (optional)
-    employees = User.objects.exclude(is_superuser=True).select_related().prefetch_related(
-        'teams', 'supervised_teams', 'managed_teams'
+    sort = request.GET.get("sort", "name")
+    direction = request.GET.get("dir", "asc")
+    page = request.GET.get("page", 1)
+
+    # Sort mapping
+    sort_map = {
+        "name": "first_name",
+        "position": "role",
+        "team": "teams__name",
+        "status": "status",
+    }
+
+    sort_field = sort_map.get(sort, "first_name")
+    if direction == "desc":
+        sort_field = "-" + sort_field
+
+    # Fetch employees
+    employees_qs = (
+        User.objects.exclude(is_superuser=True)
+        .select_related()
+        .prefetch_related("teams", "supervised_teams", "managed_teams")
+        .order_by(sort_field)
+        .distinct()
     )
 
-    # Combine all possible team relationships
+    # Pagination (10 per page)
+    paginator = Paginator(employees_qs, 10)
+    employees = paginator.get_page(page)
+
+    # Combine teams for each employee in current page only
     for emp in employees:
-        emp.all_teams = (  # type: ignore[attr-defined]
-            emp.teams.all() |
-            emp.supervised_teams.all() |
-            emp.managed_teams.all()
+        teams = (
+            emp.teams.all()
+            | emp.supervised_teams.all()
+            | emp.managed_teams.all()
         ).distinct()
 
-    return render(request, 'users/employee_list.html', {'employees': employees})
+        setattr(emp, "all_teams", teams)
+
+    return render(request, "users/employee_list.html", {
+        "employees": employees,        # paginated obj
+        "sort": sort,
+        "direction": direction,
+        "paginator": paginator,
+    })
 
 
 # --- EMPLOYEE ---
