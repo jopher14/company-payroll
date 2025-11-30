@@ -12,178 +12,153 @@
     </a>
   </div>
 
-  <div class="card shadow">
-    <div class="card-body">
-      <div class="table-responsive">
-        <div class="mb-3">
-          <input type="text" id="searchInput" class="form-control" placeholder="Search employees...">
-        </div>
-        <table class="table table-hover align-middle">
-          <thead class="table-dark">
-            <tr>
+  <div id="employee-react-table"></div>
 
-              <!-- NAME -->
-              <th>
-                <a href="?sort=name&dir={% if sort == 'name' and direction == 'asc' %}desc{% else %}asc{% endif %}"
-                  class="text-white text-decoration-none">
-                  Name
-                  {% if sort == 'name' %}
-                    {% if direction == 'asc' %}
-                      ▲
-                    {% else %}
-                      ▼
-                    {% endif %}
-                  {% endif %}
-                </a>
-              </th>
-
-              <!-- POSITION -->
-              <th>
-                <a href="?sort=position&dir={% if sort == 'position' and direction == 'asc' %}desc{% else %}asc{% endif %}"
-                  class="text-white text-decoration-none">
-                  Position
-                  {% if sort == 'position' %}
-                    {% if direction == 'asc' %}
-                      ▲
-                    {% else %}
-                      ▼
-                    {% endif %}
-                  {% endif %}
-                </a>
-              </th>
-
-              <!-- TEAM -->
-              <th>
-                <a href="?sort=team&dir={% if sort == 'team' and direction == 'asc' %}desc{% else %}asc{% endif %}"
-                  class="text-white text-decoration-none">
-                  Team
-                  {% if sort == 'team' %}
-                    {% if direction == 'asc' %}
-                      ▲
-                    {% else %}
-                      ▼
-                    {% endif %}
-                  {% endif %}
-                </a>
-              </th>
-
-              <!-- STATUS -->
-              <th>
-                <a href="?sort=status&dir={% if sort == 'status' and direction == 'asc' %}desc{% else %}asc{% endif %}"
-                  class="text-white text-decoration-none">
-                  Status
-                  {% if sort == 'status' %}
-                    {% if direction == 'asc' %}
-                      ▲
-                    {% else %}
-                      ▼
-                    {% endif %}
-                  {% endif %}
-                </a>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for emp in employees %}
-            <tr>
-
-              <!-- ✅ Name is now clickable (opens Update Profile) -->
-              <td>
-                <a href="{% url 'users:update_employee' emp.pk %}"
-                   class="fw-bold text-primary"
-                   style="text-decoration: none;">
-                  {{ emp.get_full_name|default:emp.username }}
-                </a>
-              </td>
-
-              <td>{{ emp.get_role_display }}</td>
-
-              <!-- Team Column -->
-              <td>
-                {% if emp.all_teams %}
-                  {% for team in emp.all_teams %}
-                    <span class="badge bg-success text-light">
-                      {{ team.name }}{% if not forloop.last %}, {% endif %}
-                    </span>
-                  {% endfor %}
-                {% else %}
-                  <span class="badge bg-danger text-light">No Team Assigned</span>
-                {% endif %}
-              </td>
-
-              <!-- Status Column -->
-              <td>
-                {% if emp.status == "Active" %}
-                  <span class="badge bg-success">Active</span>
-                {% else %}
-                  <span class="badge bg-secondary">Inactive</span>
-                {% endif %}
-              </td>
-
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="7" class="text-center">No employees found.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-          <ul class="pagination justify-content-center">
-
-            {% if employees.has_previous %}
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page={{ employees.previous_page_number }}&sort={{ sort }}&dir={{ direction }}">Previous</a>
-              </li>
-            {% else %}
-              <li class="page-item disabled">
-                <span class="page-link">Previous</span>
-              </li>
-            {% endif %}
-
-            {% for num in employees.paginator.page_range %}
-              {% if employees.number == num %}
-                <li class="page-item active">
-                  <span class="page-link">{{ num }}</span>
-                </li>
-              {% else %}
-                <li class="page-item">
-                  <a class="page-link"
-                    href="?page={{ num }}&sort={{ sort }}&dir={{ direction }}">{{ num }}</a>
-                </li>
-              {% endif %}
-            {% endfor %}
-
-            {% if employees.has_next %}
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page={{ employees.next_page_number }}&sort={{ sort }}&dir={{ direction }}">Next</a>
-              </li>
-            {% else %}
-              <li class="page-item disabled">
-                <span class="page-link">Next</span>
-              </li>
-            {% endif %}
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </div>
   <a href="{% url 'main:dashboard' %}" class="btn btn-outline-dark mt-3">Back</a>
 </div>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-<script>
-document.getElementById("searchInput").addEventListener("keyup", function () {
-    const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll("table tbody tr");
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(filter) ? "" : "none";
-    });
-});
+<!-- Django → React data -->
+<script type="application/json" id="employee-data">
+  {{ employees_json|safe }}
 </script>
+
+{% verbatim %}
+<script type="text/babel">
+
+const { useState, useMemo } = React;
+
+function EmployeeTable({ employees }) {
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("full_name");
+  const [sortDir, setSortDir] = useState("asc");
+  const [page, setPage] = useState(1);
+  const perPage = 10;
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    let rows = employees.filter(e =>
+      e.full_name.toLowerCase().includes(q) ||
+      e.role.toLowerCase().includes(q) ||
+      e.team.toLowerCase().includes(q) ||
+      e.status.toLowerCase().includes(q)
+    );
+
+    rows.sort((a, b) => {
+      const A = (a[sortKey] || "").toLowerCase();
+      const B = (b[sortKey] || "").toLowerCase();
+      if (A < B) return sortDir === "asc" ? -1 : 1;
+      if (A > B) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return rows;
+  }, [employees, search, sortKey, sortDir]);
+
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const shown = filtered.slice((page - 1) * perPage, page * perPage);
+
+  function toggleSort(key) {
+    if (key === sortKey) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  return (
+    <div className="card shadow">
+      <div className="card-body">
+
+        {/* Search */}
+        <input
+          type="text"
+          className="form-control mb-3"
+          placeholder="Search employees..."
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
+
+        {/* Table */}
+        <div className="table-responsive">
+          <table className="table table-hover align-middle">
+            <thead className="table-dark">
+              <tr>
+                <th onClick={() => toggleSort("full_name")} style={{ cursor: "pointer" }}>
+                  Name {sortKey==="full_name" ? (sortDir==="asc" ? "▲" : "▼") : ""}
+                </th>
+                <th onClick={() => toggleSort("role")} style={{ cursor: "pointer" }}>
+                  Position {sortKey==="role" ? (sortDir==="asc" ? "▲" : "▼") : ""}
+                </th>
+                <th onClick={() => toggleSort("team")} style={{ cursor: "pointer" }}>
+                  Team {sortKey==="team" ? (sortDir==="asc" ? "▲" : "▼") : ""}
+                </th>
+                <th onClick={() => toggleSort("status")} style={{ cursor: "pointer" }}>
+                  Status {sortKey==="status" ? (sortDir==="asc" ? "▲" : "▼") : ""}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {shown.length > 0 ? shown.map(emp => (
+                <tr key={emp.id}>
+                  <td>
+                    <a
+                      href={`/users/update/${emp.id}/`}
+                      className="fw-bold text-primary"
+                      style={{ textDecoration: "none" }}
+                    >
+                      {emp.full_name}
+                    </a>
+                  </td>
+                  <td>{emp.role}</td>
+                  <td>
+                    <span className={"badge " + (emp.team === "No Team Assigned" ? "bg-danger" : "bg-success")}>
+                      {emp.team}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={"badge " + (emp.status === "Active" ? "bg-success" : "bg-secondary")}>
+                      {emp.status}
+                    </span>
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan="4" className="text-center">No employees found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="d-flex justify-content-between align-items-center">
+          <div>Showing {shown.length} of {filtered.length}</div>
+          <div className="btn-group">
+            <button className="btn btn-outline-dark" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+            <button className="btn btn-outline-dark" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+const jsonData = JSON.parse(document.getElementById("employee-data").textContent);
+ReactDOM.createRoot(document.getElementById("employee-react-table"))
+  .render(<EmployeeTable employees={jsonData} />);
+
+</script>
+{% endverbatim %}
+
 {% endblock %}

@@ -16,8 +16,10 @@ from django.core.paginator import Paginator
 from django.utils.timezone import localdate
 from dateutil.relativedelta import relativedelta
 from django.db.models import Q
+from django.core.serializers.json import DjangoJSONEncoder
 import csv
 import io
+import json
 
 
 @login_required
@@ -74,50 +76,36 @@ def logoutView(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def employee_list(request: HttpRequest) -> HttpResponse:
-    sort = request.GET.get("sort", "name")
-    direction = request.GET.get("dir", "asc")
-    page = request.GET.get("page", 1)
 
-    # Sort mapping
-    sort_map = {
-        "name": "first_name",
-        "position": "role",
-        "team": "teams__name",
-        "status": "status",
-    }
-
-    sort_field = sort_map.get(sort, "first_name")
-    if direction == "desc":
-        sort_field = "-" + sort_field
-
-    # Fetch employees
+    # Fetch all employees except superuser
     employees_qs = (
         User.objects.exclude(is_superuser=True)
         .select_related()
         .prefetch_related("teams", "supervised_teams", "managed_teams")
-        .order_by(sort_field)
         .distinct()
     )
 
-    # Pagination (10 per page)
-    paginator = Paginator(employees_qs, 10)
-    employees = paginator.get_page(page)
-
-    # Combine teams for each employee in current page only
-    for emp in employees:
-        teams = (
-            emp.teams.all()
-            | emp.supervised_teams.all()
-            | emp.managed_teams.all()
-        ).distinct()
-
-        setattr(emp, "all_teams", teams)
+    # Build the JSON list for React
+    employees_json = json.dumps([
+        {
+            "id": emp.id,
+            "full_name": emp.get_full_name() or emp.username,
+            "role": emp.get_role_display(),
+            "team": ", ".join({
+                t.name
+                for t in (
+                    list(emp.teams.all())
+                    + list(emp.supervised_teams.all())
+                    + list(emp.managed_teams.all())
+                )
+            }) or "No Team Assigned",
+            "status": emp.status,
+        }
+        for emp in employees_qs
+    ], cls=DjangoJSONEncoder)
 
     return render(request, "users/employee_list.html", {
-        "employees": employees,        # paginated obj
-        "sort": sort,
-        "direction": direction,
-        "paginator": paginator,
+        "employees_json": employees_json
     })
 
 
