@@ -28,7 +28,7 @@ urlpatterns = [
     # HR only
     path(route="register/", view=views.register, name="register"),
     path(route="employees/", view=views.employee_list, name="employee_list"),
-    path(route='employee/update/<int:pk>/', view=views.update_employee, name='update_employee'),
+    path(route='employees/update/<int:pk>/', view=views.update_employee, name='update_employee'),
     path(route="employees/<int:pk>/delete/", view=views.delete_employee, name="delete_employee"),
     path(route="manage/", view=views.manage_schedule, name="manage_schedule"),
     path(route="add-schedule/", view=views.add_schedule, name="add_schedule"),
