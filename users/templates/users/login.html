@@ -1,5 +1,5 @@
 {% extends "main/base.html" %}
-
+{% load static %}
 {% block title %}Login{% endblock %}
 
 {% block content %}
@@ -15,7 +15,7 @@
       <p class="text-muted small">Please sign in with your credentials</p>
     </div>
 
-    <!-- ✅ Global Non-field Errors -->
+    <!-- Global Form Errors -->
     {% if form.non_field_errors %}
       <div class="alert alert-danger alert-dismissible fade show" role="alert">
         {{ form.non_field_errors.0 }}
@@ -57,9 +57,12 @@
           placeholder="Password" 
           required>
         <label for="password">Password</label>
-        <span class="position-absolute top-50 end-0 translate-middle-y me-3" style="cursor:pointer;" onclick="togglePassword()">
+
+        <!-- Toggle Eye -->
+        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" style="cursor:pointer;">
           <i class="bi bi-eye" id="togglePasswordIcon"></i>
         </span>
+
         <div class="invalid-feedback">
           {% if form.password.errors %}
             {{ form.password.errors.0 }}
@@ -69,7 +72,6 @@
         </div>
       </div>
 
-      <!-- Forgot Password Link -->
       <div class="d-flex justify-content-end mb-3">
         <a href="{% url 'users:password_reset' %}" class="text-decoration-none small">
           Forgot Password?
@@ -79,37 +81,11 @@
       <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">Login</button>
     </form>
 
-<!-- Password Toggle -->
-<script>
-function togglePassword() {
-  const passwordField = document.getElementById("password");
-  const icon = document.getElementById("togglePasswordIcon");
-  if (passwordField.type === "password") {
-    passwordField.type = "text";
-    icon.classList.replace("bi-eye", "bi-eye-slash");
-  } else {
-    passwordField.type = "password";
-    icon.classList.replace("bi-eye-slash", "bi-eye");
-  }
-}
-</script>
+  </div>
+</div>
 
-<!-- ✨ Animation Styles -->
-<style>
-/* Fade + Slide In */
-@keyframes fadeSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+<!-- Load external JS + CSS -->
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+<script src="{% static 'js/login.js' %}"></script>
 
-.login-card {
-  animation: fadeSlideIn 0.8s ease-out;
-}
-</style>
 {% endblock content %}
