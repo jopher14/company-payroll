@@ -3,9 +3,11 @@
 {% block title %}Update Employee{% endblock %}
 
 {% block content %}
+
 <div class="container mt-5" style="max-width: 900px;">
   <div class="card shadow p-4">
     <h3 class="mb-3">Update Employee: {{ employee.get_full_name|default:employee.username }}</h3>
+
     <div class="mb-3">
       <label class="form-label fw-semibold">Team Name:</label>
       <div>
@@ -21,16 +23,20 @@
 
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      
+
       <!-- Photo -->
       <div class="text-center mb-3">
-        <img id="photo-preview" src="{{ employee.photoOrDefault }}" alt="Profile Photo"
-             class="img-thumbnail mb-2" width="150">
+        <img id="photo-preview"
+             src="{{ employee.photoOrDefault }}"
+             alt="Profile Photo"
+             class="img-thumbnail mb-2"
+             width="150">
+
         <div class="mt-2">{{ form.photo }}</div>
       </div>
 
       <div class="row">
-        <!-- Left Column -->
+        <!-- LEFT COLUMN -->
         <div class="col-md-6">
           {% for field in form %}
             {% if field.name not in 'photo salary leave_count sss tin pagibig philhealth' %}
@@ -39,7 +45,7 @@
           {% endfor %}
         </div>
 
-        <!-- Right Column -->
+        <!-- RIGHT COLUMN -->
         <div class="col-md-6">
           <h5 class="mb-3">Government IDs & Salary</h5>
           {% for field in form %}
@@ -50,29 +56,18 @@
         </div>
       </div>
 
-      <!-- Set Schedule -->
       <a href="{% url 'users:manage_schedule' %}?employee_id={{ emp.pk }}"
-          class="btn btn-sm btn-primary">
+         class="btn btn-sm btn-primary">
         <i class="bi bi-calendar-event"></i> Set Schedule
       </a>
 
-      <!-- Buttons -->
       <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
       <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-100 mt-2">Cancel</a>
     </form>
   </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const photoInput = document.querySelector("input[name='photo']");
-  const preview = document.getElementById("photo-preview");
-  if (photoInput) {
-    photoInput.addEventListener("change", function () {
-      const file = this.files[0];
-      preview.src = file ? URL.createObjectURL(file) : "{{ employee.photoOrDefault }}";
-    });
-  }
-});
-</script>
+<!-- External JS -->
+<script src="{% static 'js/update_employee.js' %}"></script>
+
 {% endblock %}
