@@ -1,0 +1,75 @@
+/* Tooltip styling */
+.fc-tooltip {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  position: absolute;
+  display: none;
+  z-index: 1000;
+}
+
+/* Animation */
+.tab-animated {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+.tab-pane.fade.show.active.tab-animated {
+  animation-name: fadeSlideIn;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Expandable sections */
+.expandable .expand-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.expandable.active .expand-content {
+  max-height: 500px;
+  opacity: 1;
+  visibility: visible;
+}
+
+.expandable .expand-toggle {
+  border-radius: 0.5rem;
+}
+
+.expandable.active .expand-toggle {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.expandable .expand-item {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.expandable .expand-item:hover {
+  background: #f1f1f1;
+}
+
+.expandable .caret {
+  transition: transform 0.3s;
+}
+
+.expandable.active .caret {
+  transform: rotate(180deg);
+}

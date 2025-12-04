@@ -1,25 +1,24 @@
 {% extends "main/base.html" %}
 {% load humanize %}
 {% block title %}Dashboard{% endblock %}
+{% load static %}
 
 {% block content %}
-<div class="container-fluid py-1">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
+<div class="container-fluid py-1">
   <div class="row">
-    
-    <!-- Sidebar (Role-Based Shortcuts) -->
+
+    <!-- Sidebar -->
     <div class="col-md-3">
       <div class="card shadow-sm border-0 h-100">
 
-        <!-- Sidebar Header -->
         <div class="bg-primary text-white text-center py-4 rounded-top">
-          <h5 class="fw-bold mb-1">
-            👋 Welcome, {{ user.get_full_name|default:user.username }}
-          </h5>
+          <h5 class="fw-bold mb-1">👋 Welcome, {{ user.get_full_name|default:user.username }}</h5>
           <small>You are logged in as <strong>{{ user.role|title }}</strong></small>
         </div>
 
-        <!-- Sidebar Body -->
         <div class="card-body p-3">
           <h5 class="card-title text-center mb-4">
             {% if user.role == "employee" %} 👨‍🔧
@@ -27,77 +26,56 @@
             {% elif user.role == "manager" %} 👔
             {% elif user.role == "human_resources" or user.is_superuser %} 🏢
             {% endif %}
-            Quick Menu 
+            Quick Menu
           </h5>
+
           <div class="d-grid gap-2">
 
             {% if user.role == "human_resources" or user.is_superuser %}
-              <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">
-                ➕ Create Announcement
-              </a>
-              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-dark">
-                👥 Manage Employees
-              </a>
-              <a href="{% url 'users:team_list' %}" class="btn btn-outline-dark">
-                🧑‍🤝‍🧑 Manage Teams
-              </a>
-              <a href="{% url 'users:manage_attendance' %}" class="btn btn-outline-dark">
-                ➕ Manually Log Attendance
-              </a>
-              <a href="{% url 'users:manage_loans' %}" class="btn btn-outline-dark">
-                🏦 Manage Loans
-              </a>
-              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-outline-dark">
-                💰 Generate Payroll
-              </a>
+              <a href="{% url 'main:create_announcement' %}" class="btn btn-outline-dark">➕ Create Announcement</a>
+              <a href="{% url 'users:employee_list' %}" class="btn btn-outline-dark">👥 Manage Employees</a>
+              <a href="{% url 'users:team_list' %}" class="btn btn-outline-dark">🧑‍🤝‍🧑 Manage Teams</a>
+              <a href="{% url 'users:manage_attendance' %}" class="btn btn-outline-dark">➕ Manually Log Attendance</a>
+              <a href="{% url 'users:manage_loans' %}" class="btn btn-outline-dark">🏦 Manage Loans</a>
+              <a href="{% url 'payroll:generate_payroll' %}" class="btn btn-outline-dark">💰 Generate Payroll</a>
             {% endif %}
 
             {% if user.role == "manager" %}
-              <!-- Attendance -->
-              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">
-                🕒 Time In / Out
-              </a>
-              <a href="{% url 'users:upload_attendance_csv' %}" class="btn btn-outline-dark">
-                🕒 Manual Upload
-              </a>
-              <a href="{% url 'users:my_current_team' %}" class="btn btn-outline-dark">
-                🧑‍🤝‍🧑 My Team
-              </a>
-
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:upload_attendance_csv' %}" class="btn btn-outline-dark">🕒 Manual Upload</a>
+              <a href="{% url 'users:my_current_team' %}" class="btn btn-outline-dark">🧑‍🤝‍🧑 My Team</a>
 
               <!-- Approvals -->
               <div class="expandable w-100">
-                <button 
-                class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
-                type="button">
-                <span>✅ Approvals</span>
+                <button class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle">
+                  <span>✅ Approvals</span>
 
-                <span class="d-flex align-items-center gap-2">
-                  {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
-                    {% if total_pending > 0 %}
-                      <span class="badge bg-danger">{{ total_pending }}</span>
-                    {% endif %}
-                  {% endwith %}
-                  <span class="caret">▼</span>
-                </span>
-              </button>
+                  <span class="d-flex align-items-center gap-2">
+                    {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
+                      {% if total_pending > 0 %}
+                        <span class="badge bg-danger">{{ total_pending }}</span>
+                      {% endif %}
+                    {% endwith %}
+                    <span class="caret">▼</span>
+                  </span>
+                </button>
 
                 <div class="expand-content">
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:pending_leaves' %}">
                     📑 Leave Requests
                     {% if pending_leaves_count > 0 %}
                       <span class="badge bg-danger">{{ pending_leaves_count }}</span>
                     {% endif %}
                   </a>
 
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:overtime_list' %}">
                     ⏰ Overtime Requests
                     {% if pending_overtimes_count > 0 %}
                       <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
                     {% endif %}
                   </a>
 
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:pending_schedule_changes' %}">
                     📋 Schedule Changes
                     {% if pending_schedule_changes_count > 0 %}
                       <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
@@ -106,75 +84,48 @@
                 </div>
               </div>
 
-
-              <!-- Payroll -->
-              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
-                💵 My Payslips
-              </a>
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
             {% endif %}
 
-
             {% if user.role == "supervisor" %}
-              <!-- Attendance -->
-              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">
-                🕒 Time In / Out
-              </a>
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
 
               <!-- File Requests -->
               <div class="expandable w-100">
-                <button 
-                  class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
-                  type="button">
-                  📝 File Requests
+                <button class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle">
+                  📝 File Requests <span class="caret">▼</span>
+                </button>
+
+                <div class="expand-content">
+                  <a class="expand-item" href="{% url 'users:my_leaves' %}">📑 File a Leave</a>
+                  <a class="expand-item" href="{% url 'users:my_pending_overtime' %}">⏱ File Overtime</a>
+                  <a class="expand-item" href="{% url 'users:my_pending_schedule_change' %}">🗓 File Change Schedule</a>
+                </div>
+              </div>
+
+              <!-- Approvals -->
+              <div class="expandable w-100">
+                <button class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle">
+                  <span>✅ Approvals</span>
                   <span class="caret">▼</span>
                 </button>
 
                 <div class="expand-content">
-                  <a class="expand-item" href="{% url 'users:my_leaves' %}">
-                    📑 File a Leave
-                  </a>
-                  <a class="expand-item" href="{% url 'users:my_pending_overtime' %}">
-                    ⏱ File Overtime
-                  </a>
-                  <a class="expand-item" href="{% url 'users:my_pending_schedule_change' %}">
-                    🗓 File Change Schedule
-                  </a>
-                </div>
-              </div>
-
-              <!-- Approvals -->
-              <div class="expandable w-100">
-                <button 
-                class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center expand-toggle" 
-                type="button">
-                <span>✅ Approvals</span>
-
-                <span class="d-flex align-items-center gap-2">
-                  {% with total_pending=pending_leaves_count|add:pending_overtimes_count|add:pending_schedule_changes_count %}
-                    {% if total_pending > 0 %}
-                      <span class="badge bg-danger">{{ total_pending }}</span>
-                    {% endif %}
-                  {% endwith %}
-                  <span class="caret">▼</span>
-                </span>
-              </button>
-
-                <div class="expand-content">
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_leaves' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:pending_leaves' %}">
                     📑 Leave Requests
                     {% if pending_leaves_count > 0 %}
                       <span class="badge bg-danger">{{ pending_leaves_count }}</span>
                     {% endif %}
                   </a>
 
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:overtime_list' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:overtime_list' %}">
                     ⏰ Overtime Requests
                     {% if pending_overtimes_count > 0 %}
                       <span class="badge bg-danger">{{ pending_overtimes_count }}</span>
                     {% endif %}
                   </a>
 
-                  <a class="expand-item d-flex justify-content-between align-items-center" href="{% url 'users:pending_schedule_changes' %}">
+                  <a class="expand-item d-flex justify-content-between" href="{% url 'users:pending_schedule_changes' %}">
                     📋 Schedule Changes
                     {% if pending_schedule_changes_count > 0 %}
                       <span class="badge bg-danger">{{ pending_schedule_changes_count }}</span>
@@ -183,65 +134,59 @@
                 </div>
               </div>
 
-                <!-- Payroll -->
-                <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">
-                  💵 My Payslips
-                </a>
-              {% endif %}
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+            {% endif %}
 
+            {% if user.role == "employee" %}
+              <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
+              <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
+              <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">⏱ File Overtime</a>
+              <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
+            {% endif %}
 
-              {% if user.role == "employee" %}
-                <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
-                <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
-                <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
-                <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">⏱ File Overtime</a>
-                <a href="{% url 'payroll:payroll_list' %}" class="btn btn-outline-dark">💵 My Payslips</a>
-
-              {% endif %}
-
-            </div>
           </div>
         </div>
-      </div>
 
-    <!-- Main Panel (Calendar / Announcements) -->
+      </div>
+    </div>
+
+    <!-- Main Content -->
     <div class="col-md-9">
       <div class="card shadow-sm border-0">
         <div class="card-body">
 
-          <!-- Tabs -->
-          <ul class="nav nav-tabs mb-5" id="dashboardTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar" type="button" role="tab">
+          <ul class="nav nav-tabs mb-5" id="dashboardTabs">
+            <li class="nav-item">
+              <button class="nav-link active" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar">
                 📅 Attendance Calendar
               </button>
             </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab">
+
+            <li class="nav-item">
+              <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements">
                 📢 Announcements
               </button>
             </li>
           </ul>
 
-          <!-- Tab Content -->
-          <div class="tab-content" id="dashboardTabsContent">
+          <div class="tab-content">
 
             <!-- Calendar -->
-            <div class="tab-pane fade show active tab-animated" id="calendar" role="tabpanel">
+            <div class="tab-pane fade show active tab-animated" id="calendar">
               <div id="attendance-calendar" class="border rounded p-3 bg-light"></div>
             </div>
 
             <!-- Announcements -->
-            <div class="tab-pane fade tab-animated" id="announcements" role="tabpanel">
+            <div class="tab-pane fade tab-animated" id="announcements">
               <h4>📢 Latest Announcements</h4>
-              <div class="list-group mt-3">
 
+              <div class="list-group mt-3">
                 {% for ann in announcement %}
                   {% if ann.is_active %}
                     <div class="list-group-item shadow-sm mb-4 p-4 rounded fade-in-up">
                       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
 
-                        <!-- Left Side: Content -->
                         <div class="flex-grow-1">
                           <h5 class="mb-1">{{ ann.title }}</h5>
 
@@ -254,14 +199,11 @@
                           <p class="mt-2 mb-3">{{ ann.description }}</p>
 
                           {% if ann.picture %}
-                            <img src="{{ ann.picture.url }}" 
-                                alt="{{ ann.title }}" 
-                                class="img-fluid rounded mt-2" 
-                                style="max-width: 700px; height: auto; border-radius: 10px;">
+                            <img src="{{ ann.picture.url }}" class="img-fluid rounded mt-2"
+                                 alt="{{ ann.title }}" style="max-width: 700px;">
                           {% endif %}
                         </div>
 
-                        <!-- Right Side: Author + Buttons -->
                         <div class="text-end">
                           <small class="text-muted d-block mb-3">
                             Posted by {{ ann.created_by.get_full_name|default:ann.created_by.username }}<br>
@@ -269,28 +211,25 @@
                           </small>
 
                           {% if user.role == "human_resources" or user.is_superuser %}
-                            <div class="btn-group" role="group">
-                              <a href="{% url 'main:edit_announcement' ann.pk %}" 
-                                class="btn btn-sm btn-outline-primary" title="Edit">
+                            <div class="btn-group">
+                              <a href="{% url 'main:edit_announcement' ann.pk %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Edit
                               </a>
-                              <a href="{% url 'main:delete_announcement' ann.pk %}" 
-                                class="btn btn-sm btn-outline-danger" title="Delete Announcement">
+                              <a href="{% url 'main:delete_announcement' ann.pk %}" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> Delete
                               </a>
                             </div>
                           {% endif %}
-                        </div>
 
+                        </div>
                       </div>
                     </div>
                   {% endif %}
                 {% empty %}
-                  <div class="alert alert-secondary text-center">
-                    No announcements found.
-                  </div>
+                  <div class="alert alert-secondary text-center">No announcements found.</div>
                 {% endfor %}
               </div>
+
             </div>
           </div>
 
@@ -301,127 +240,9 @@
   </div>
 </div>
 
-<!-- FullCalendar CSS/JS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const calendarEl = document.getElementById("attendance-calendar");
-  const events = JSON.parse('{{ attendance_events|escapejs }}');
-
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "dayGridMonth",
-    height: "auto",
-    events: events,
-    eventDisplay: "block",
-    eventDidMount: function(info) {
-      if (info.event.extendedProps.tooltip) {
-        new bootstrap.Tooltip(info.el, {
-          title: info.event.extendedProps.tooltip,
-          placement: "top",
-          trigger: "hover",
-          container: "body"
-        });
-      }
-    }
-  });
-
-  calendar.render();
-});
+  const attendanceData = JSON.parse('{{ attendance_events|escapejs }}');
 </script>
+<script src="{% static 'js/dashboard.js' %}"></script>
 
-<style>
-/* Optional styling for tooltips */
-.fc-tooltip {
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  position: absolute;
-  display: none;
-  z-index: 1000;
-}
-
-/* 🌟 Tab switching animation */
-.tab-animated {
-  animation-duration: 0.5s;
-  animation-fill-mode: both;
-}
-.tab-pane.fade.show.active.tab-animated {
-  animation-name: fadeSlideIn;
-}
-
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-/* Expandable content */
-.expandable .expand-content {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-  transition: max-height 0.4s ease, opacity 0.3s ease;
-}
-
-/* Active/open */
-.expandable.active .expand-content {
-  max-height: 500px; /* adjust if you expect more items */
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Button */
-.expandable .expand-toggle {
-  border-radius: 0.5rem;
-  margin: 0;
-}
-
-/* Flatten corners when expanded */
-.expandable.active .expand-toggle {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-/* Items */
-.expandable .expand-item {
-  display: block;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
-  color: inherit;
-}
-.expandable .expand-item:hover {
-  background: #f1f1f1;
-}
-
-/* Caret rotation */
-.expandable .caret {
-  margin-left: auto;
-  transition: transform 0.3s;
-}
-.expandable.active .caret {
-  transform: rotate(180deg);
-}
-
-
-</style>
-
-<script>
-document.querySelectorAll('.expand-toggle').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const parent = btn.closest('.expandable');
-    parent.classList.toggle('active');
-  });
-});
-</script>
 {% endblock %}
