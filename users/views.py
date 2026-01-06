@@ -4,8 +4,8 @@ from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from datetime import time
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse, HttpRequest
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team
-from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm, LoanForm, TeamForm, AttendanceCSVUploadForm
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team, ManualAttendanceRequest
+from .forms import LeaveForm, ScheduleForm, EmployeeUpdateForm, OvertimeForm, UserRegistrationForm, ScheduleChangeRequestForm, LoanForm, TeamForm, AttendanceCSVUploadForm, ManualAttendanceForm
 from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -1300,3 +1300,118 @@ def upload_attendance_csv(request: HttpRequest) -> HttpResponse:
         form = AttendanceCSVUploadForm()
 
     return render(request, "attendance/upload_csv.html", {"form": form})
+
+
+@login_required
+def manual_attendance_request(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ManualAttendanceForm(request.POST)
+        if form.is_valid():
+            attendance = form.save(commit=False)
+            attendance.user = request.user
+            attendance.save()
+            return redirect("users:attendance_requests")
+    else:
+        form = ManualAttendanceForm()
+
+    return render(request, "attendance/manual_request.html", {"form": form})
+
+
+@login_required
+def approve_attendance(request, request_id):
+    # Make sure the user is logged in (login_required ensures this)
+    attendance = get_object_or_404(
+        ManualAttendanceRequest,
+        id=request_id,
+        status="PENDING"
+    )
+
+    # Prevent self-approval
+    if attendance.user == request.user:
+        return redirect("users:attendance_requests")
+
+    # Make sure the user has a 'role' attribute
+    if not hasattr(request.user, "role") or not hasattr(attendance.user, "role"):
+        return redirect("users:attendance_requests")
+
+    user_role = request.user.role.lower()
+    target_role = attendance.user.role.lower()
+
+    # Employee → Supervisor
+    if target_role == "employee" and user_role == "supervisor":
+        attendance.status = "APPROVED"
+        attendance.approved_by = request.user
+        attendance.save()
+        return redirect("users:attendance_requests")
+
+    # Supervisor → Manager
+    elif target_role == "supervisor" and user_role == "manager":
+        attendance.status = "APPROVED"
+        attendance.approved_by = request.user
+        attendance.save()
+        return redirect("users:attendance_requests")
+
+    # Other users cannot approve
+    return redirect("users:attendance_requests")
+
+
+@login_required
+def attendance_requests(request: HttpRequest) -> HttpResponse:
+    """
+    List manual attendance requests:
+    - Pending requests
+    - Approved requests
+    """
+
+    pending_requests = ManualAttendanceRequest.objects.filter(
+        status="PENDING"
+    ).select_related("user").order_by("-created_at")
+
+    approved_requests = ManualAttendanceRequest.objects.filter(
+        status="APPROVED"
+    ).select_related("user").order_by("-created_at")
+
+    context = {
+        "pending_requests": pending_requests,
+        "approved_requests": approved_requests,
+    }
+
+    return render(request, "attendance/attendance_requests.html", context)
+
+
+@login_required
+def edit_attendance_request(request: HttpRequest, request_id: int) -> HttpResponse:
+    attendance = get_object_or_404(
+        ManualAttendanceRequest,
+        id=request_id,
+        user=request.user,
+        status="PENDING"
+    )
+
+    if request.method == "POST":
+        form = ManualAttendanceForm(request.POST, instance=attendance)
+        if form.is_valid():
+            form.save()
+            return redirect("users:attendance_requests")
+    else:
+        form = ManualAttendanceForm(instance=attendance)
+
+    return render(request, "users/manual_attendance_request.html", {
+        "form": form,
+        "is_edit": True
+    })
+
+
+@login_required
+def delete_attendance_request(request: HttpRequest, request_id: int) -> HttpResponse:
+    attendance = get_object_or_404(
+        ManualAttendanceRequest,
+        id=request_id,
+        user=request.user,
+        status="PENDING"
+    )
+
+    if request.method == "POST":
+        attendance.delete()
+
+    return redirect("users:attendance_requests")

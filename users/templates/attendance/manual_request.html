@@ -1,0 +1,129 @@
+{% extends "main/base.html" %}
+
+{% block title %}Manage Attendance{% endblock %}
+
+{% block extra_css %}
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 760px;">
+
+  <!-- Page Header -->
+  <div class="mb-4 text-center">
+    <h3 class="fw-bold mb-1">⏱ Manual Time In / Time Out</h3>
+    <p class="text-muted mb-0">
+      Submit a manual attendance request for approval
+    </p>
+  </div>
+
+  <!-- Info Alert -->
+  <div class="alert alert-info d-flex align-items-start gap-2 mb-4 rounded-3">
+    <i class="bi bi-info-circle-fill fs-5"></i>
+    <div>
+      <strong>Important:</strong>
+      Manual attendance requests are subject to approval. Please ensure all
+      details are accurate to avoid delays.
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="card shadow-lg border-0 rounded-4">
+    <div class="card-body p-4 p-md-5">
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Attendance Details -->
+        <h6 class="text-uppercase text-muted mb-3 fw-semibold">
+          Attendance Details
+        </h6>
+
+        <!-- Date -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">📅 Date <span class="text-danger">*</span></label>
+          {{ form.date }}
+          {% if form.date.errors %}
+            <div class="text-danger small mt-1">{{ form.date.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Time Section -->
+        <div class="row">
+          <!-- Time In -->
+          <div class="col-md-6 mb-4">
+            <label class="form-label fw-semibold">🕘 Time In <span class="text-danger">*</span></label>
+            <input type="text" id="time_in" name="time_in" class="form-control" placeholder="HH:MM" required>
+            <small class="text-muted d-block mt-1">Start of working hours (24-hour format)</small>
+          </div>
+
+          <!-- Time Out -->
+          <div class="col-md-6 mb-4">
+            <label class="form-label fw-semibold">🕔 Time Out <span class="text-danger">*</span></label>
+            <input type="text" id="time_out" name="time_out" class="form-control" placeholder="HH:MM" required>
+            <small class="text-muted d-block mt-1">End of working hours (24-hour format)</small>
+          </div>
+        </div>
+
+        <!-- Section Divider -->
+        <hr class="my-4">
+
+        <!-- Reason -->
+        <h6 class="text-uppercase text-muted mb-3 fw-semibold">Justification</h6>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">📝 Reason <span class="text-danger">*</span></label>
+          {{ form.reason }}
+          {% if form.reason.errors %}
+            <div class="text-danger small mt-1">{{ form.reason.errors }}</div>
+          {% endif %}
+          <div class="form-text">
+            Example: Forgot to clock in, system downtime, approved overtime, etc.
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex flex-column flex-md-row gap-3 mt-4">
+          <button type="submit" class="btn btn-primary btn-lg flex-fill">Submit for Approval</button>
+          <a href="{% url 'main:dashboard' %}" class="btn btn-outline-secondary btn-lg flex-fill">⬅ Cancel</a>
+        </div>
+
+        <!-- Footer Note (Role-Based) -->
+        <div class="text-center mt-4">
+          <small class="text-muted">
+            Status will be set to <strong>Pending</strong> until reviewed by your
+            {% if request.user.role|lower == "supervisor" %}
+              manager.
+            {% else %}
+              supervisor.
+            {% endif %}
+          </small>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  // Initialize Flatpickr for 24-hour time
+  flatpickr("#time_in", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "H:i",
+    time_24hr: true
+  });
+
+  flatpickr("#time_out", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "H:i",
+    time_24hr: true
+  });
+</script>
+{% endblock %}

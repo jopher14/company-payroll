@@ -34,10 +34,18 @@ urlpatterns = [
     path(route="add-schedule/", view=views.add_schedule, name="add_schedule"),
     path(route="edit-schedule/<int:pk>/", view=views.edit_schedule, name="edit_schedule"),
 
-    # Manually add edit delete log attendance
+    # Manually add edit delete log attendance HR
     path(route="manage-attendance/", view=views.manage_attendance, name="manage_attendance"),
     path(route="edit/<int:attendance_id>/", view=views.manage_attendance, name="edit_attendance"),
     path(route="delete/<int:attendance_id>/", view=views.delete_attendance, name="delete_attendance"),
+
+    # Manually add time in and time out
+    path(route="manual-request/", view=views.manual_attendance_request, name="manual_request"),
+    path(route="approve/<int:request_id>/", view=views.approve_attendance, name="approve_request"),
+    path(route="requests/", view=views.attendance_requests, name="attendance_requests"),
+    path(route="request/<int:request_id>/edit/", view=views.edit_attendance_request, name="edit_request"),
+    path(route="request/<int:request_id>/delete/", view=views.delete_attendance_request, name="delete_request"),
+
 
     # Employee
     path(route="leave/file/", view=views.file_leave, name="file_leave"),

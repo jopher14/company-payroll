@@ -46,7 +46,7 @@ function EmployeeTable({ employees }) {
         <input
           type="text"
           className="form-control mb-3"
-          placeholder="Search employees..."
+          placeholder="Search Employees by Name, Position, or Team..."
           value={search}
           onChange={e => {
             setSearch(e.target.value);

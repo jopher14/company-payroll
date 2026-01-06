@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team
+from .models import User, Leave, Attendance, Schedule, Overtime, ScheduleChangeRequest, EmployeeSchedule, Loan, Team, ManualAttendanceRequest
 from payroll.models import Payroll
 
 
@@ -200,3 +200,20 @@ class TeamAdmin(admin.ModelAdmin):
         if not obj.created_by:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(ManualAttendanceRequest)
+class ManualAttendanceRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "date",
+        "time_in",
+        "time_out",
+        "status",
+        "approved_by",
+        "created_at",
+    )
+    list_filter = ("status", "date", "user")
+    search_fields = ("user__username", "user__email", "reason")
+    readonly_fields = ("created_at",)
+    ordering = ("-date", "-created_at")

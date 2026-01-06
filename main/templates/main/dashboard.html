@@ -89,6 +89,7 @@
 
             {% if user.role == "supervisor" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:manual_request' %}" class="btn btn-outline-dark">➕ Manually Log Attendance</a>
 
               <!-- File Requests -->
               <div class="expandable w-100">
@@ -139,6 +140,7 @@
 
             {% if user.role == "employee" %}
               <a href="{% url 'users:log_attendance' %}" class="btn btn-outline-dark">🕒 Time In / Out</a>
+              <a href="{% url 'users:manual_request' %}" class="btn btn-outline-dark">➕ Manually Log Attendance</a>
               <a href="{% url 'users:my_leaves' %}" class="btn btn-outline-dark">📝 File a Leave</a>
               <a href="{% url 'users:pending_schedule_changes' %}" class="btn btn-outline-dark">🗓 Change Schedule</a>
               <a href="{% url 'users:overtime_list' %}" class="btn btn-outline-dark">⏱ File Overtime</a>

@@ -627,3 +627,29 @@ class Loan(models.Model):
 
     def __str__(self):
         return f"{self.employee.get_full_name()} - {self.loan_type} ({self.loan_amount})"
+
+
+class ManualAttendanceRequest(models.Model):
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("APPROVED", "Approved"),
+        ("REJECTED", "Rejected"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    date = models.DateField()
+    time_in = models.TimeField()
+    time_out = models.TimeField()
+    reason = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="approved_requests",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.date} ({self.status})"

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
-from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan, Team
+from .models import User, Leave, Attendance, Schedule, Overtime, Day, ScheduleChangeRequest, Loan, Team, ManualAttendanceRequest
 from datetime import time
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -343,3 +343,44 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         self.fields['old_password'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
         self.fields['new_password1'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
         self.fields['new_password2'].widget.attrs.update({'class': 'form-control', 'placeholder': ' '})
+
+
+class ManualAttendanceForm(forms.ModelForm):
+    time_in = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control',
+            'step': 60  # minutes only
+        }),
+        input_formats=['%H:%M']
+    )
+    time_out = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control',
+            'step': 60
+        }),
+        input_formats=['%H:%M']
+    )
+
+    class Meta:
+        model = ManualAttendanceRequest
+        fields = ['date', 'time_in', 'time_out', 'reason']
+        widgets = {
+            'date': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter reason...'
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        time_in = cleaned_data.get('time_in')
+        time_out = cleaned_data.get('time_out')
+
+        if time_in and time_out and time_out <= time_in:
+            raise forms.ValidationError("Time Out must be later than Time In.")
