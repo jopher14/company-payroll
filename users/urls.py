@@ -42,9 +42,9 @@ urlpatterns = [
     # Manually add time in and time out
     path(route="manual-request/", view=views.manual_attendance_request, name="manual_request"),
     path(route="approve/<int:request_id>/", view=views.approve_attendance, name="approve_request"),
-    path(route="requests/", view=views.attendance_requests, name="attendance_requests"),
+    path(route="requests-list/", view=views.attendance_requests, name="attendance_requests"),
     path(route="request/<int:request_id>/edit/", view=views.edit_attendance_request, name="edit_request"),
-    path(route="request/<int:request_id>/delete/", view=views.delete_attendance_request, name="delete_request"),
+    path(route="delete-request/<int:request_id>/delete/", view=views.delete_attendance_request, name="delete_request"),
 
 
     # Employee

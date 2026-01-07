@@ -1,0 +1,120 @@
+{% extends "main/base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}
+  {% if is_edit %}Edit Manual Attendance{% else %}Manual Time In / Time Out{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 850px;">
+
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <h3 class="fw-bold">
+      ⏱️ Edit Time In / Time Out
+    </h3>
+    <p class="text-muted mb-0">
+      Submit a manual attendance request for approval
+    </p>
+  </div>
+
+  <!-- Card -->
+  <div class="card shadow border-0 rounded-4">
+    <div class="card-body p-4 p-md-5">
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Attendance Details -->
+        <h6 class="fw-bold text-uppercase text-secondary mb-3">
+          Attendance Details
+        </h6>
+
+        <!-- Date -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            📅 Date <span class="text-danger">*</span>
+          </label>
+          {{ form.date|add_class:"form-control" }}
+          {% if form.date.errors %}
+            <div class="text-danger small mt-1">{{ form.date.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="row">
+          <!-- Time In -->
+          <div class="col-md-6 mb-4">
+            <label class="form-label fw-semibold">
+              ⏰ Time In <span class="text-danger">*</span>
+            </label>
+            {{ form.time_in|add_class:"form-control" }}
+            <small class="text-muted">
+              Start of working hours (24-hour format)
+            </small>
+            {% if form.time_in.errors %}
+              <div class="text-danger small mt-1">{{ form.time_in.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Time Out -->
+          <div class="col-md-6 mb-4">
+            <label class="form-label fw-semibold">
+              ⏱️ Time Out <span class="text-danger">*</span>
+            </label>
+            {{ form.time_out|add_class:"form-control" }}
+            <small class="text-muted">
+              End of working hours (24-hour format)
+            </small>
+            {% if form.time_out.errors %}
+              <div class="text-danger small mt-1">{{ form.time_out.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Justification -->
+        <h6 class="fw-bold text-uppercase text-secondary mb-3">
+          Justification
+        </h6>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            📝 Reason <span class="text-danger">*</span>
+          </label>
+          {{ form.reason|add_class:"form-control" }}
+          <small class="text-muted">
+            Example: Forgot to clock in, system downtime, approved overtime, etc.
+          </small>
+          {% if form.reason.errors %}
+            <div class="text-danger small mt-1">{{ form.reason.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex flex-column flex-md-row gap-3 mt-4">
+          <button type="submit" class="btn btn-primary btn-lg flex-fill">
+            {% if is_edit %}
+              💾 Update Request
+            {% else %}
+              📤 Submit for Approval
+            {% endif %}
+          </button>
+
+          <a href="{% url 'users:attendance_requests' %}"
+             class="btn btn-outline-secondary btn-lg flex-fill">
+            ⬅ Cancel
+          </a>
+        </div>
+
+        <p class="text-center text-muted mt-3 small">
+          Status will be set to <strong>Pending</strong> until reviewed by your manager.
+        </p>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

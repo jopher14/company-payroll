@@ -6,11 +6,19 @@
 <div class="container mt-5 mb-5">
 
   <!-- Page Header -->
-  <div class="mb-4 text-center">
-    <h3 class="fw-bold">📋 Attendance Requests</h3>
-    <p class="text-muted mb-0">
-      Review pending and approved manual attendance requests
-    </p>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="text-center text-md-start">
+      <h3 class="fw-bold mb-1">📋 Attendance Requests</h3>
+      <p class="text-muted mb-0">
+        Review pending and approved manual attendance requests
+      </p>
+    </div>
+
+    <div class="text-center text-md-end">
+      <a href="{% url 'users:manual_request' %}" class="btn btn-primary btn-lg">
+        ➕ New Manual Attendance Request
+      </a>
+    </div>
   </div>
 
   <!-- Pending Requests -->
@@ -37,9 +45,7 @@
           <tbody>
             {% for req in pending_requests %}
             <tr>
-              <td>
-                {{ req.user.get_full_name|default:req.user.username }}
-              </td>
+              <td>{{ req.user.get_full_name|default:req.user.username }}</td>
               <td>{{ req.date|date:"M d, Y" }}</td>
               <td>{{ req.time_in|time:"H:i" }}</td>
               <td>{{ req.time_out|time:"H:i" }}</td>
@@ -47,67 +53,45 @@
                 {{ req.reason|default:"—" }}
               </td>
               <td>
-                <span class="badge bg-warning text-dark">
-                  {{ req.status }}
-                </span>
+                <span class="badge bg-warning text-dark">{{ req.status }}</span>
               </td>
               <td class="text-center">
-                    <div class="d-flex justify-content-center gap-2">
+                <div class="d-flex justify-content-center gap-2">
 
-                        {# ================= APPROVE BUTTON ================= #}
-                        {% if req.user != request.user %}
-                        
-                        {# Employee → Supervisor approves #}
-                        {% if req.user.role|lower == "employee" and request.user.role|lower == "supervisor" %}
-                            <a href="{% url 'users:approve_request' req.id %}"
-                            class="btn btn-sm btn-success"
-                            title="Approve">
-                            ✔
-                            </a>
+                  {# ===== APPROVE ===== #}
+                  {% if req.user != request.user %}
+                    {% if req.user.role|lower == "employee" and request.user.role|lower == "supervisor" %}
+                      <a href="{% url 'users:approve_request' req.id %}"
+                         class="btn btn-sm btn-success" title="Approve">✔</a>
+                    {% elif req.user.role|lower == "supervisor" and request.user.role|lower == "manager" %}
+                      <a href="{% url 'users:approve_request' req.id %}"
+                         class="btn btn-sm btn-success" title="Approve">✔</a>
+                    {% endif %}
+                  {% endif %}
 
-                        {# Supervisor → Manager approves #}
-                        {% elif req.user.role|lower == "supervisor" and request.user.role|lower == "manager" %}
-                            <a href="{% url 'users:approve_request' req.id %}"
-                            class="btn btn-sm btn-success"
-                            title="Approve">
-                            ✔
-                            </a>
-                        {% endif %}
+                  {# ===== EDIT / DELETE (OWNER ONLY) ===== #}
+                  {% if req.user == request.user %}
+                    <a href="{% url 'users:edit_request' req.id %}"
+                       class="btn btn-sm btn-primary" title="Edit">✏️</a>
 
-                        {% endif %}
+                    <button type="button"
+                            class="btn btn-sm btn-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#deleteRequestModal"
+                            data-request-id="{{ req.id }}">
+                      🗑
+                    </button>
+                  {% endif %}
 
-                        {# ================= EDIT / DELETE (OWNER ONLY) ================= #}
-                        {% if req.user == request.user %}
-                        <a href="{% url 'users:edit_request' req.id %}"
-                            class="btn btn-sm btn-primary"
-                            title="Edit">
-                            ✏️
-                        </a>
-
-                        <form method="post"
-                                action="{% url 'users:delete_request' req.id %}"
-                                onsubmit="return confirm('Are you sure you want to delete this request?');">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="btn btn-sm btn-danger"
-                                    title="Delete">
-                            🗑
-                            </button>
-                        </form>
-                        {% endif %}
-
-                    </div>
-                </td>
-
+                </div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
       {% else %}
-      <div class="p-4 text-center text-muted">
-        No pending requests
-      </div>
+        <div class="p-4 text-center text-muted">No pending requests</div>
       {% endif %}
 
     </div>
@@ -136,33 +120,84 @@
           <tbody>
             {% for req in approved_requests %}
             <tr>
-              <td>
-                {{ req.user.get_full_name|default:req.user.username }}
-              </td>
+              <td>{{ req.user.get_full_name|default:req.user.username }}</td>
               <td>{{ req.date|date:"M d, Y" }}</td>
               <td>{{ req.time_in|time:"H:i" }}</td>
               <td>{{ req.time_out|time:"H:i" }}</td>
-              <td>
-                {{ req.approved_by.get_full_name|default:req.approved_by.username }}
-              </td>
-              <td>
-                <span class="badge bg-success">
-                  {{ req.status }}
-                </span>
-              </td>
+              <td>{{ req.approved_by.get_full_name|default:req.approved_by.username }}</td>
+              <td><span class="badge bg-success">{{ req.status }}</span></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
       {% else %}
-      <div class="p-4 text-center text-muted">
-        No approved requests
-      </div>
+        <div class="p-4 text-center text-muted">No approved requests</div>
       {% endif %}
 
     </div>
   </div>
 
 </div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteRequestModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger bg-opacity-10">
+        <h5 class="modal-title fw-bold">🗑 Delete Attendance Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        Are you sure you want to delete this request?
+        <p class="text-muted small mt-2">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+
+        <form method="post" id="deleteRequestForm">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">
+            <span class="spinner-border spinner-border-sm d-none"
+                  id="deleteSpinner"
+                  role="status"></span>
+            <span id="deleteBtnText">Yes, Delete</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if request.GET.deleted %}
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div class="toast show text-bg-success border-0">
+    <div class="d-flex">
+      <div class="toast-body">
+        ✅ Attendance request deleted successfully.
+      </div>
+      <button type="button"
+              class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  const deleteModal = document.getElementById('deleteRequestModal');
+  const deleteForm = document.getElementById('deleteRequestForm');
+
+  deleteModal.addEventListener('show.bs.modal', event => {
+    const button = event.relatedTarget;
+    const requestId = button.getAttribute('data-request-id');
+
+    deleteForm.action = "{% url 'users:delete_request' 0 %}".replace("0", requestId);
+  });
+</script>
+
 {% endblock %}

@@ -1396,7 +1396,7 @@ def edit_attendance_request(request: HttpRequest, request_id: int) -> HttpRespon
     else:
         form = ManualAttendanceForm(instance=attendance)
 
-    return render(request, "users/manual_attendance_request.html", {
+    return render(request, "attendance/manual_attendance_edit.html", {
         "form": form,
         "is_edit": True
     })
