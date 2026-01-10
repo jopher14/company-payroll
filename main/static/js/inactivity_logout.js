@@ -41,7 +41,7 @@
         resetInactivityTimer();
     });
 
-    ["click", "keydown", "mousemove"].forEach(evt =>
+    ["click"].forEach(evt =>
         document.addEventListener(evt, resetInactivityTimer)
     );
 
