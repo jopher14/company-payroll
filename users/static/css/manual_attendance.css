@@ -1,0 +1,18 @@
+.manual-attendance-container {
+  max-width: 760px;
+}
+
+.section-title {
+  text-transform: uppercase;
+  color: #6c757d;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.card.shadow-lg {
+  border-radius: 1rem;
+}
+
+.alert i {
+  line-height: 1.2;
+}

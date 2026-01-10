@@ -1,14 +1,17 @@
 {% extends "main/base.html" %}
+{% load static %}
 
 {% block title %}Manage Attendance{% endblock %}
 
 {% block extra_css %}
 <!-- Flatpickr CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!-- Page-specific CSS -->
+<link rel="stylesheet" href="{% static 'css/manual_attendance.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5 mb-5" style="max-width: 760px;">
+<div class="container mt-5 mb-5 manual-attendance-container">
 
   <!-- Page Header -->
   <div class="mb-4 text-center">
@@ -36,13 +39,13 @@
         {% csrf_token %}
 
         <!-- Attendance Details -->
-        <h6 class="text-uppercase text-muted mb-3 fw-semibold">
-          Attendance Details
-        </h6>
+        <h6 class="section-title">Attendance Details</h6>
 
         <!-- Date -->
         <div class="mb-4">
-          <label class="form-label fw-semibold">📅 Date <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold">
+            📅 Date <span class="text-danger">*</span>
+          </label>
           {{ form.date }}
           {% if form.date.errors %}
             <div class="text-danger small mt-1">{{ form.date.errors }}</div>
@@ -51,28 +54,49 @@
 
         <!-- Time Section -->
         <div class="row">
-          <!-- Time In -->
           <div class="col-md-6 mb-4">
-            <label class="form-label fw-semibold">🕘 Time In <span class="text-danger">*</span></label>
-            <input type="text" id="time_in" name="time_in" class="form-control" placeholder="HH:MM" required>
-            <small class="text-muted d-block mt-1">Start of working hours (24-hour format)</small>
+            <label class="form-label fw-semibold">
+              🕘 Time In <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              id="time_in"
+              name="time_in"
+              class="form-control"
+              placeholder="HH:MM"
+              required
+            >
+            <small class="text-muted d-block mt-1">
+              Start of working hours (24-hour format)
+            </small>
           </div>
 
-          <!-- Time Out -->
           <div class="col-md-6 mb-4">
-            <label class="form-label fw-semibold">🕔 Time Out <span class="text-danger">*</span></label>
-            <input type="text" id="time_out" name="time_out" class="form-control" placeholder="HH:MM" required>
-            <small class="text-muted d-block mt-1">End of working hours (24-hour format)</small>
+            <label class="form-label fw-semibold">
+              🕔 Time Out <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              id="time_out"
+              name="time_out"
+              class="form-control"
+              placeholder="HH:MM"
+              required
+            >
+            <small class="text-muted d-block mt-1">
+              End of working hours (24-hour format)
+            </small>
           </div>
         </div>
 
-        <!-- Section Divider -->
         <hr class="my-4">
 
         <!-- Reason -->
-        <h6 class="text-uppercase text-muted mb-3 fw-semibold">Justification</h6>
+        <h6 class="section-title">Justification</h6>
         <div class="mb-4">
-          <label class="form-label fw-semibold">📝 Reason <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold">
+            📝 Reason <span class="text-danger">*</span>
+          </label>
           {{ form.reason }}
           {% if form.reason.errors %}
             <div class="text-danger small mt-1">{{ form.reason.errors }}</div>
@@ -82,13 +106,20 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Buttons -->
         <div class="d-flex flex-column flex-md-row gap-3 mt-4">
-          <button type="submit" class="btn btn-primary btn-lg flex-fill">Submit for Approval</button>
-          <a href="{% url 'users:attendance_requests' %}" class="btn btn-outline-secondary btn-lg flex-fill">⬅ Cancel</a>
+          <button type="submit" class="btn btn-primary btn-lg flex-fill">
+            Submit for Approval
+          </button>
+          <a
+            href="{% url 'users:attendance_requests' %}"
+            class="btn btn-outline-secondary btn-lg flex-fill"
+          >
+            ⬅ Cancel
+          </a>
         </div>
 
-        <!-- Footer Note (Role-Based) -->
+        <!-- Footer Note -->
         <div class="text-center mt-4">
           <small class="text-muted">
             Status will be set to <strong>Pending</strong> until reviewed by your
@@ -110,20 +141,5 @@
 {% block extra_js %}
 <!-- Flatpickr JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
-  // Initialize Flatpickr for 24-hour time
-  flatpickr("#time_in", {
-    enableTime: true,
-    noCalendar: true,
-    dateFormat: "H:i",
-    time_24hr: true
-  });
-
-  flatpickr("#time_out", {
-    enableTime: true,
-    noCalendar: true,
-    dateFormat: "H:i",
-    time_24hr: true
-  });
-</script>
+<script src="{% static 'js/manual_attendance.js' %}"></script>
 {% endblock %}
