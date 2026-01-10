@@ -8,178 +8,84 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-    <style>
-        body { background-color: #f8f9fa; }
-        .navbar-brand { font-weight: bold; letter-spacing: 1px; }
-        .btn-link.nav-link { color: #fff; text-decoration: none; }
-        .btn-link.nav-link:hover { color: #ffc107; }
-        .navbar-center {
-            position: absolute; left: 50%; transform: translateX(-50%);
-            color: #fff; font-weight: 500; display: flex; align-items: center;
-        }
-        @media (max-width: 991px) {
-            .navbar-center { position: static; transform: none; justify-content: center; margin-top: .5rem; }
-        }
-    </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm position-relative">
-        <div class="container flex-column flex-lg-row">
-            <div class="d-flex w-100 justify-content-between align-items-center">
-                <a class="navbar-brand" href="{% url 'main:dashboard' %}">🏢 Company</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-            </div>
 
-            {% if user.is_authenticated %}
-                <div class="navbar-center">
-                    <a href="{% url 'users:profile' %}" class="text-decoration-none text-light">
-                        <i class="bi bi-person-circle me-1"></i>
-                        {{ user.get_full_name }}
-                    </a>
-                </div>
-            {% endif %}
-
-            <div class="collapse navbar-collapse justify-content-end w-100" id="navbarNav">
-                <ul class="navbar-nav align-items-center ms-auto">
-                    {% if user.is_authenticated and user.last_login %}
-                        <li class="nav-item me-3 text-light d-flex align-items-center">
-                            <i class="bi bi-clock me-1"></i>
-                            {{ user.last_login|date:"Y-m-d H:i" }}
-                        </li>
-                        <li class="nav-item">
-                            <form method="post" action="{% url 'users:logout' %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="button" class="nav-link btn btn-link p-0 m-0 text-decoration-none text-light"
-                                        data-bs-toggle="modal" data-bs-target="#logoutModal">
-                                    <i class="bi bi-box-arrow-right me-1"></i> Logout
-                                </button>
-                            </form>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm position-relative">
+    <div class="container flex-column flex-lg-row">
+        <div class="d-flex w-100 justify-content-between align-items-center">
+            <a class="navbar-brand" href="{% url 'main:dashboard' %}">🏢 Company</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
         </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="container my-4">
-
-        {% if request.user.is_authenticated %}
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert
-                    {% if message.tags == 'error' %}alert-danger
-                    {% elif message.tags == 'success' %}alert-success
-                    {% elif message.tags == 'warning' %}alert-warning
-                    {% else %}alert-info{% endif %}
-                    alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-            {% endif %}
+        {% if user.is_authenticated %}
+        <div class="navbar-center">
+            <a href="{% url 'users:profile' %}" class="text-decoration-none text-light">
+                <i class="bi bi-person-circle me-1"></i>
+                {{ user.get_full_name }}
+            </a>
+        </div>
         {% endif %}
 
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Logout Modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Confirm Logout</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">Are you sure you want to log out?</div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="post" action="{% url 'users:logout' %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger">Yes, Logout</button>
-                    </form>
-                </div>
-            </div>
+        <div class="collapse navbar-collapse justify-content-end w-100" id="navbarNav">
+            <ul class="navbar-nav align-items-center ms-auto">
+                {% if user.is_authenticated and user.last_login %}
+                <li class="nav-item me-3 text-light d-flex align-items-center">
+                    <i class="bi bi-clock me-1"></i>
+                    {{ user.last_login|date:"Y-m-d H:i" }}
+                </li>
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link btn btn-link p-0 m-0 text-light"
+                            data-bs-toggle="modal"
+                            data-bs-target="#logoutModal">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </button>
+                </li>
+                {% endif %}
+            </ul>
         </div>
     </div>
+</nav>
 
-    {% if user.is_authenticated %}
-    <!-- Inactivity Logout Modal -->
-    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">⚠ Inactivity Logout Warning</h5>
-                </div>
-                <div class="modal-body text-center">
-                    You have been inactive.<br>
-                    You will be logged out in <span id="inactivityCountdown">60</span> seconds.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="stayLoggedInBtn">Stay Logged In</button>
-                </div>
-            </div>
+<!-- Main Content -->
+<main class="container my-4">
+    {% if request.user.is_authenticated and messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    </div>
+        {% endfor %}
+    {% endif %}
 
-    <form id="autoLogoutForm" method="post" action="{% url 'users:logout' %}" style="display:none;">
-        {% csrf_token %}
-    </form>
+    {% block content %}{% endblock %}
+</main>
 
-<script>
-(function() {
-    const inactivityModalEl = document.getElementById("inactivityModal");
-    const inactivityCountdownEl = document.getElementById("inactivityCountdown");
-    const stayLoggedInBtn = document.getElementById("stayLoggedInBtn");
-    const autoLogoutForm = document.getElementById("autoLogoutForm");
+<!-- Logout Modal -->
+{% include "partials/logout_modal.html" %}
 
-    let inactivityTimer, inactivityCountdown = 60, inactivityInterval;
-    const inactivityModal = new bootstrap.Modal(inactivityModalEl);
-
-    function resetInactivityTimer() {
-        clearTimeout(inactivityTimer);
-        clearInterval(inactivityInterval);
-        inactivityCountdown = 60; // reset countdown
-        inactivityCountdownEl.textContent = inactivityCountdown;
-        inactivityTimer = setTimeout(showInactivityWarning, 5 * 60 * 1000); // 5 mins inactivity
-    }
-
-    function showInactivityWarning() {
-        inactivityModal.show();
-        inactivityInterval = setInterval(() => {
-            inactivityCountdown--;
-            inactivityCountdownEl.textContent = inactivityCountdown;
-            if (inactivityCountdown <= 0) {
-                clearInterval(inactivityInterval);
-                autoLogoutForm.submit(); // ✅ logout when countdown hits 0
-            }
-        }, 1000);
-    }
-
-    stayLoggedInBtn.addEventListener("click", function() {
-        inactivityModal.hide();
-        resetInactivityTimer();
-    });
-
-    // Reset timer on user activity
-    ["click"].forEach(evt => {
-        document.addEventListener(evt, resetInactivityTimer);
-    });
-
-    resetInactivityTimer();
-})();
-</script>
+{% if user.is_authenticated %}
+    {% include "partials/inactivity_modal.html" %}
 {% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Global JS -->
+{% if user.is_authenticated %}
+<script src="{% static 'js/inactivity_logout.js' %}"></script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

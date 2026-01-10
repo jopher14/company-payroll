@@ -1,0 +1,23 @@
+<div class="modal fade" id="inactivityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">⚠ Inactivity Logout Warning</h5>
+            </div>
+            <div class="modal-body text-center">
+                You have been inactive.<br>
+                You will be logged out in
+                <strong><span id="inactivityCountdown">60</span></strong> seconds.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="stayLoggedInBtn">
+                    Stay Logged In
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="autoLogoutForm" method="post" action="{% url 'users:logout' %}" style="display:none;">
+    {% csrf_token %}
+</form>

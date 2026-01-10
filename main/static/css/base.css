@@ -1,0 +1,36 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.btn-link.nav-link {
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-link.nav-link:hover {
+    color: #ffc107;
+}
+
+.navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 991px) {
+    .navbar-center {
+        position: static;
+        transform: none;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+}
