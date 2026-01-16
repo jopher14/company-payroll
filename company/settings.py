@@ -196,4 +196,3 @@ SESSION_SAVE_EVERY_REQUEST = True
 MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
