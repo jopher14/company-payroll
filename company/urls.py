@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
@@ -39,6 +40,7 @@ urlpatterns = [
     path(route=".well-known/appspecific/com.chrome.devtools.json", view=views.chrome_devtools_config),
     path(route='set-csrf/', view=views.set_csrf_token, name='set-csrf'),
     path(route='api/protected/', view=views.protected_view, name='protected'),
+    path(route='favicon.ico', view=RedirectView.as_view(url='/static/favicon.ico')),
 ]
 
 if settings.DEBUG:
