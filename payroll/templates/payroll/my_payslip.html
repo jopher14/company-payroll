@@ -21,7 +21,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>Basic Rate (Full Salary)</td><td class="text-end">{{ payslip.employee.salary|floatformat:2|intcomma }}</td></tr>
+        <tr><td>Basic Rate (Full Salary)</td><td class="text-end">{{ payslip.basic_salary|add:payslip.basic_salary|floatformat:2|intcomma }}</td></tr>
         <tr><td>Daily Rate</td><td class="text-end">{{ payslip.daily_rate|floatformat:2|intcomma }}</td></tr>
         <tr><td>Hourly Rate</td><td class="text-end">{{ payslip.hourly_rate|floatformat:2|intcomma }}</td></tr>
         <tr><td>Basic Income (This Period)</td><td class="text-end">{{ payslip.basic_salary|floatformat:2|intcomma }}</td></tr>
@@ -74,7 +74,7 @@
           {% endif %}
           <tr class="table-light fw-bold">
             <td>Total Loan Deduction</td>
-            <td class="text-end">{{ payslip.loan_deduct|floatformat:2|intcomma }}</td>
+            <td class="text-end">{{ payslip.loan_deduction|floatformat:2|intcomma }}</td>
           </tr>
         </tbody>
       </table>

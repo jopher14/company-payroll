@@ -10,22 +10,23 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-e(zuzy@5u$mq^^az=e7=zrn^h%mp#z97p0y($#bflxe4as20_1"
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-ALLOWED_HOSTS = ["your-app-name.onrender.com"]
+DEBUG = os.environ.get("DEBUG", "").strip().lower() in {"1", "true", "yes"}
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("Set SECRET_KEY when DEBUG is disabled.")
+    SECRET_KEY = get_random_secret_key()
 
 # for creating a webserver locally
 ALLOWED_HOSTS = [

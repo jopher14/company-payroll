@@ -3,7 +3,7 @@ from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
 import calendar
 from datetime import date, timedelta
-from users.models import Attendance, Loan
+from users.models import Attendance
 
 User = settings.AUTH_USER_MODEL
 
@@ -163,44 +163,16 @@ class Payroll(models.Model):
 
         return self.q(total_salary_deduction), self.q(total_allowance_deduction), breakdown
 
-    # 💳 Loan deduction
-    def compute_loan_deduction(self):
-        active_loans = Loan.objects.filter(employee=self.employee, is_active=True)
-        total_loan_deduction = Decimal("0.00")
-
-        for loan in active_loans:
-            if loan.term_months <= 0:
-                continue
-
-            monthly_due = loan.loan_amount / Decimal(loan.term_months)
-            monthly_due = self.q(monthly_due)
-
-            new_balance = max(Decimal("0.00"), loan.balance - monthly_due)
-            loan.balance = new_balance
-            loan.is_active = new_balance > 0
-            loan.save(update_fields=["balance", "is_active"])
-
-            total_loan_deduction += monthly_due
-
-        return self.q(total_loan_deduction)
-
-    # 💾 Save method with all computations
     def save(self, *args, **kwargs):
-        # Rates
-        if self.basic_salary > 0:
+        # Set rates and attendance for a new, manually entered payroll.
+        if self._state.adding and not self.daily_rate and self.basic_salary > 0:
             self.daily_rate = self.q(self.basic_salary / Decimal(26))
             self.hourly_rate = self.q(self.daily_rate / Decimal(8))
+            self.attendance_deduction, _, self.attendance_breakdown = self.compute_attendance_deduction()
 
-        # Attendance
-        salary_ded, allowance_ded, breakdown = self.compute_attendance_deduction()
-        self.attendance_deduction = salary_ded
-        self.attendance_breakdown = breakdown
+        if self.overtime_type:
+            self.overtime_pay = self.compute_overtime()
 
-        # Overtime + Loans
-        self.overtime_pay = self.compute_overtime()
-        self.loan_deduction = self.compute_loan_deduction()
-
-        # Total deductions
         self.total_deductions = self.q(
             self.attendance_deduction
             + self.loan_deduction
@@ -209,9 +181,6 @@ class Payroll(models.Model):
             + self.pagibig
             + self.withholding_tax
         )
-
-        # Gross and net pay
-        gross_pay = self.q(self.basic_salary + self.allowances + self.overtime_pay + self.holiday_pay)
-        self.net_pay = self.q(gross_pay - self.total_deductions)
-
+        self.gross_salary = self.q(self.basic_salary + self.allowances + self.overtime_pay + self.holiday_pay)
+        self.net_pay = self.q(self.gross_salary - self.total_deductions)
         super().save(*args, **kwargs)
