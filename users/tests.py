@@ -126,4 +126,4 @@ class LoanModelTest(TestCase):
         )
         self.assertEqual(loan.balance, Decimal("12000.00"))
         self.assertIsNotNone(loan.end_date)
-        self.assertGreater(loan.loan_deduct, Decimal("0.00"))
+        self.assertEqual(loan.loan_deduct, loan.monthly_payment())

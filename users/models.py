@@ -578,12 +578,11 @@ class Loan(models.Model):
     end_date = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
-    # ✅ Semi-monthly deduction field (auto-computed)
     loan_deduct = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal("0.00"),
-        help_text="Semi-monthly deduction amount applied to this loan.",
+        help_text="Monthly deduction amount, split between payroll cutoffs.",
     )
 
     # ✅ ADD THIS FIELD
@@ -599,11 +598,10 @@ class Loan(models.Model):
         if self._state.adding and self.balance is None:
             self.balance = self.loan_amount
 
-        # 🧮 Auto-compute loan_deduct (semi-monthly)
+        # The loan form and payroll treat loan_deduct as a monthly amount.
         if self._state.adding and (not self.loan_deduct or self.loan_deduct <= 0):
             if self.loan_amount and self.term_months:
-                monthly_payment = self.loan_amount / Decimal(self.term_months)
-                self.loan_deduct = (monthly_payment / Decimal(2)).quantize(Decimal("0.01"))
+                self.loan_deduct = self.monthly_payment()
 
         # 🚫 Deactivate when fully paid
         def save(self, *args, **kwargs):

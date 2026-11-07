@@ -1,73 +1,125 @@
-# from decimal import Decimal
-# from django.test import TestCase
-# from django.contrib.auth import get_user_model
-# from payroll.models import Payroll
-# from users.models import Loan
-# from payroll.views import compute_loan_deduction
+from datetime import date, time
+from decimal import Decimal
+from unittest.mock import patch
 
-# User = get_user_model()
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
-# class PayslipLoanDeductionTests(TestCase):
-#     def setUp(self):
-#         # Create an employee
-#         self.employee = User.objects.create_user(
-#             username="employee1",
-#             password="password123",
-#             first_name="John",
-#             last_name="Doe",
-#             salary=Decimal("30000.00"),
-#             role="employee"
-#         )
+from users.models import Attendance, Loan, Overtime, User
 
-#     def create_loan(self, loan_type, amount, loan_deduct, balance, is_active=True):
-#         return Loan.objects.create(
-#             employee=self.employee,
-#             loan_type=loan_type,
-#             amount=Decimal(amount),
-#             loan_deduct=Decimal(loan_deduct),
-#             balance=Decimal(balance),
-#             term_months=12,
-#             is_active=is_active
-#         )
+from .models import Payroll
 
-#     def test_no_loans(self):
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertEqual(loan_deduct, 0.0)
-#         self.assertEqual(breakdown, {})
-#         self.assertEqual(summary, {})
 
-#     def test_personal_loan_deduction(self):
-#         self.create_loan("Personal Loan", "10000.00", "1000.00", "10000.00")
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertAlmostEqual(loan_deduct, 500.0)
-#         self.assertEqual(summary.get("Personal Loan"), 500.0)
-#         self.assertIn("Personal Loan", breakdown)
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class PayrollTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.employee = User.objects.create_user(username="employee", salary=Decimal("22000.00"))
+        cls.coworker = User.objects.create_user(username="coworker", salary=Decimal("22000.00"))
+        cls.hr = User.objects.create_user(username="hr", role=User.HUMAN_RESOURCES)
 
-#     def test_multiple_personal_loans(self):
-#         self.create_loan("Personal Loan", "8000.00", "800.00", "8000.00")
-#         self.create_loan("Personal Loan", "5000.00", "500.00", "5000.00")
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertAlmostEqual(loan_deduct, 650.0)
-#         self.assertEqual(summary.get("Personal Loan"), 650.0)
+    def add_loan(self, balance, monthly_due):
+        return Loan.objects.create(
+            employee=self.employee,
+            loan_amount=Decimal("1200.00"),
+            balance=Decimal(balance),
+            loan_deduct=Decimal(monthly_due),
+            start_date=date(2026, 1, 1),
+        )
 
-#     def test_government_loans_excluded(self):
-#         self.create_loan("SSS Loan", "10000.00", "1000.00", "10000.00")
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertEqual(loan_deduct, 500.0)
-#         self.assertNotIn("SSS Loan", summary)
-#         self.assertIn("Government Deductions", summary)
+    def generate(self, period="first_half"):
+        self.client.force_login(self.hr)
+        with patch("payroll.views.timezone.localdate", return_value=date(2026, 1, 31)):
+            response = self.client.post(reverse("payroll:generate_payroll"), {"period": period})
+        self.assertRedirects(response, reverse("payroll:payroll_list"), fetch_redirect_response=False)
 
-#     def test_both_personal_and_government_loans(self):
-#         self.create_loan("Personal Loan", "10000.00", "1000.00", "10000.00")
-#         self.create_loan("Pag-IBIG Loan", "5000.00", "500.00", "5000.00")
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertAlmostEqual(loan_deduct, 750.0)
-#         self.assertEqual(summary.get("Personal Loan"), 500.0)
-#         self.assertEqual(summary.get("Government Deductions"), 250.0)
+    def test_employee_cannot_register_an_hr_user(self):
+        self.client.force_login(self.employee)
+        url = reverse("users:register")
+        data = {
+            "username": "new-hr",
+            "email": "new-hr@example.com",
+            "role": User.HUMAN_RESOURCES,
+            "password1": "Strong-form-test-518!",
+            "password2": "Strong-form-test-518!",
+        }
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertFalse(User.objects.filter(username="new-hr").exists())
 
-#     def test_loan_paid_off(self):
-#         loan = self.create_loan("Personal Loan", "1000.00", "1000.00", "500.00")
-#         loan_deduct, breakdown, summary = compute_loan_deduction(self.employee, {"month": "October", "year": 2025})
-#         self.assertAlmostEqual(loan_deduct, 250.0)
-#         loan.refresh_from_db()
-#         self.assertFalse(loan.is_active)
+        self.client.force_login(self.hr)
+        self.assertRedirects(
+            self.client.post(url, data), reverse("users:employee_list"), fetch_redirect_response=False
+        )
+        self.assertEqual(User.objects.get(username="new-hr").role, User.HUMAN_RESOURCES)
+
+    def test_payslip_is_visible_only_to_owner_and_hr(self):
+        slip = Payroll.objects.create(employee=self.employee, year=2026, month=1, period="first_half")
+        url = reverse("payroll:view_payslip", args=[slip.pk])
+
+        self.client.force_login(self.coworker)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+        for viewer in (self.employee, self.hr):
+            with self.subTest(viewer=viewer):
+                self.client.force_login(viewer)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["payslip"], slip)
+
+    def test_generation_posts_one_capped_payment_per_loan(self):
+        first = self.add_loan("1000.00", "100.01")
+        second = self.add_loan("20.00", "100.00")
+        self.generate()
+        self.generate()
+
+        slip = Payroll.objects.get(employee=self.employee, year=2026, month=1, period="first_half")
+        self.assertEqual(slip.loan_deduction, Decimal("70.01"))
+        self.assertEqual(slip.loan_type_summary, {"personal": 70.01})
+        self.assertEqual(len(slip.loan_breakdown), 2)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.balance, Decimal("949.99"))
+        self.assertEqual(second.balance, Decimal("0.00"))
+        self.assertFalse(second.is_active)
+
+        self.generate("second_half")
+        first.refresh_from_db()
+        self.assertEqual(first.balance, Decimal("899.99"))
+
+    def test_payslip_reads_and_resaving_payroll_do_not_pay_loans(self):
+        loan = self.add_loan("1000.00", "100.00")
+        self.generate()
+        slip = Payroll.objects.get(employee=self.employee)
+        slip.save()
+        self.client.force_login(self.employee)
+        detail = reverse("payroll:view_payslip", args=[slip.pk])
+        for url in (detail, reverse("payroll:my_payslips"), detail):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["payslip"].loan_deduction, Decimal("50.00"))
+        loan.refresh_from_db()
+        self.assertEqual(loan.balance, Decimal("950.00"))
+
+    def test_generation_preserves_approved_overtime_and_worked_holiday_pay(self):
+        for day in (date(2026, 1, 1), date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 16)):
+            Attendance.objects.create(employee=self.employee, date=day, time_in=time(8), time_out=time(17))
+        for status in ("approved", "pending"):
+            Overtime.objects.create(
+                employee=self.employee,
+                date=date(2026, 1, 1),
+                hours=Decimal("2.00"),
+                overtime_type="regular_holiday",
+                status=status,
+            )
+        with patch("payroll.views.Philippines", return_value=dict.fromkeys([
+            date(2026, 1, 1), date(2026, 1, 3), date(2026, 1, 16)
+        ])):
+            self.generate()
+
+        slip = Payroll.objects.get(employee=self.employee)
+        self.assertEqual(slip.daily_rate, Decimal("1000.00"))
+        self.assertEqual(slip.overtime_pay, Decimal("650.00"))
+        self.assertEqual(slip.holiday_pay, Decimal("1000.00"))
+        self.assertEqual(slip.gross_salary, slip.basic_salary + slip.allowances + Decimal("1650.00"))
+        self.assertEqual(slip.net_pay, slip.gross_salary - slip.total_deductions)
