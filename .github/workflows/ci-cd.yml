@@ -11,6 +11,8 @@ jobs:
   backend-tests:
     name: Django Backend Tests
     runs-on: ubuntu-latest
+    env:
+      DEBUG: "True"
 
     steps:
       - name: Checkout repository
@@ -71,6 +73,9 @@ jobs:
   # ---------- 🚀 DEPLOY TO RENDER ----------
   deploy:
     name: Deploy to Render
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      DEBUG: "True"
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-build]
 

@@ -75,9 +75,10 @@
                               data-bs-toggle="modal" data-bs-target="#attendanceModal">
                         ✏️ Edit
                       </button>
-                      <a href="{% url 'users:delete_attendance' record.id %}" class="btn btn-sm btn-outline-danger">
-                        🗑 Delete
-                      </a>
+                      <form method="post" action="{% url 'users:delete_attendance' record.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">🗑 Delete</button>
+                      </form>
                     </td>
                   </tr>
                   {% empty %}
