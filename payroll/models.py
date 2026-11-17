@@ -2,8 +2,6 @@ from django.db import models
 from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
 import calendar
-from datetime import date, timedelta
-from users.models import Attendance, Loan
 
 User = settings.AUTH_USER_MODEL
 
@@ -116,102 +114,23 @@ class Payroll(models.Model):
         func = mapping.get(self.overtime_type)
         return self.q(func(self.hourly_rate, self.overtime_hours)) if func else Decimal("0.00")
 
-    # 📆 Attendance deduction
-    def compute_attendance_deduction(self):
-        holidays = getattr(settings, "HOLIDAYS", set())
-
-        # Cutoff period
-        if self.period == "first_half":
-            start_date, end_date = date(self.year, self.month, 1), date(self.year, self.month, 15)
-        else:
-            last_day = calendar.monthrange(self.year, self.month)[1]
-            start_date, end_date = date(self.year, self.month, 16), date(self.year, self.month, last_day)
-
-        attendance_map = {
-            att.date: att
-            for att in Attendance.objects.filter(employee=self.employee, date__range=[start_date, end_date])
-        }
-
-        total_salary_deduction = Decimal("0.00")
-        total_allowance_deduction = Decimal("0.00")
-        breakdown = {}
-
-        daily_allowance = self.q(self.allowances / Decimal(26))
-        day_count = (end_date - start_date).days + 1
-
-        for i in range(day_count):
-            day = start_date + timedelta(days=i)
-            if day.weekday() >= 5 or (holidays and day in holidays):
-                continue
-
-            att = attendance_map.get(day)
-            if not att or not att.time_in:
-                salary_deduction, allowance_deduction, reason = self.daily_rate, daily_allowance, "Absent"
-            else:
-                salary_deduction = att.compute_deduction(self.daily_rate, self.hourly_rate)
-                allowance_deduction, reason = Decimal("0.00"), att.get_deduction_reason()
-
-            total_salary_deduction += salary_deduction
-            total_allowance_deduction += allowance_deduction
-
-            if salary_deduction > 0 or allowance_deduction > 0:
-                breakdown[str(day)] = {
-                    "Salary Deduction": str(self.q(salary_deduction)),
-                    "Allowance Deduction": str(self.q(allowance_deduction)),
-                    "reason": reason,
-                }
-
-        return self.q(total_salary_deduction), self.q(total_allowance_deduction), breakdown
-
-    # 💳 Loan deduction
-    def compute_loan_deduction(self):
-        active_loans = Loan.objects.filter(employee=self.employee, is_active=True)
-        total_loan_deduction = Decimal("0.00")
-
-        for loan in active_loans:
-            if loan.term_months <= 0:
-                continue
-
-            monthly_due = loan.loan_amount / Decimal(loan.term_months)
-            monthly_due = self.q(monthly_due)
-
-            new_balance = max(Decimal("0.00"), loan.balance - monthly_due)
-            loan.balance = new_balance
-            loan.is_active = new_balance > 0
-            loan.save(update_fields=["balance", "is_active"])
-
-            total_loan_deduction += monthly_due
-
-        return self.q(total_loan_deduction)
-
-    # 💾 Save method with all computations
     def save(self, *args, **kwargs):
-        # Rates
-        if self.basic_salary > 0:
-            self.daily_rate = self.q(self.basic_salary / Decimal(26))
-            self.hourly_rate = self.q(self.daily_rate / Decimal(8))
-
-        # Attendance
-        salary_ded, allowance_ded, breakdown = self.compute_attendance_deduction()
-        self.attendance_deduction = salary_ded
-        self.attendance_breakdown = breakdown
-
-        # Overtime + Loans
-        self.overtime_pay = self.compute_overtime()
-        self.loan_deduction = self.compute_loan_deduction()
-
-        # Total deductions
-        self.total_deductions = self.q(
-            self.attendance_deduction
-            + self.loan_deduction
-            + self.sss
-            + self.philhealth
-            + self.pagibig
-            + self.withholding_tax
+        # Payroll inputs are a snapshot of the cutoff calculation.
+        amount_fields = (
+            "basic_salary", "allowances", "overtime_pay", "holiday_pay",
+            "attendance_deduction", "loan_deduction", "sss", "philhealth",
+            "pagibig", "withholding_tax",
         )
-
-        # Gross and net pay
-        gross_pay = self.q(self.basic_salary + self.allowances + self.overtime_pay + self.holiday_pay)
-        self.net_pay = self.q(gross_pay - self.total_deductions)
-
+        update_fields = kwargs.get("update_fields")
+        if update_fields is None or set(update_fields).intersection(amount_fields):
+            for field in amount_fields:
+                setattr(self, field, self.q(Decimal(str(getattr(self, field)))))
+            self.gross_salary = self.basic_salary + self.allowances + self.overtime_pay + self.holiday_pay
+            self.total_deductions = (
+                self.attendance_deduction + self.loan_deduction + self.sss
+                + self.philhealth + self.pagibig + self.withholding_tax
+            )
+            self.net_pay = self.gross_salary - self.total_deductions
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"gross_salary", "total_deductions", "net_pay"}
         super().save(*args, **kwargs)

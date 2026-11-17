@@ -1,7 +1,7 @@
 from collections import defaultdict
 from calendar import monthrange
 from decimal import Decimal
-from users.models import Attendance, Overtime, Loan
+from users.models import Attendance, Overtime
 from typing import Optional
 from datetime import date
 
@@ -73,7 +73,7 @@ def compute_overtime_hours(employee, year: int, month: int, start_day: int, end_
 
     hours_by_type: dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
     for ot in overtime_logs:
-        ot_type = getattr(ot, "ot_type", "ordinary")  # default if no field
+        ot_type = ot.overtime_type
         hours_by_type[ot_type] += Decimal(ot.hours or 0)
 
     return hours_by_type
@@ -241,47 +241,23 @@ def compute_total_attendance_deduction(
     return total_deduction.quantize(Decimal("0.01")), breakdown
 
 
-def compute_loan_deduction(employee, period):
-    """
-    Compute total personal loan deductions (split semi-monthly).
-    Government loans are excluded from this calculation.
-
-    Returns:
-        total_deduction (Decimal)
-        breakdown (dict)
-        loan_type_summary (dict)
-    """
-    loans = Loan.objects.filter(employee=employee, is_active=True)
-    total_deduction = Decimal("0.00")
+def compute_loan_deduction(loans):
+    """Prepare this cutoff's installments for active, locked loan rows."""
+    totals_by_type = defaultdict(Decimal)
     breakdown = {}
-    loan_type_summary = {}
+    updated_loans = []
 
     for loan in loans:
-        deduction = Decimal("0.00")
-        reason = ""
+        balance = loan.loan_amount if loan.balance is None else loan.balance
+        if balance <= 0 or not loan.loan_deduct or loan.loan_deduct <= 0:
+            continue
 
-        if loan.loan_deduct and loan.loan_deduct > 0:
-            # Split deduction for semi-monthly
-            deduction = (loan.loan_deduct / Decimal("2.00")).quantize(Decimal("0.01"))
-            reason = "Manual loan_deduct split (semi-monthly)"
-        else:
-            reason = "No deduction set"
+        deduction = min(balance, loan.loan_deduct)
+        loan.balance = balance - deduction
+        loan.is_active = loan.balance > 0
+        updated_loans.append(loan)
+        totals_by_type[loan.loan_type] += deduction
+        breakdown[str(loan.pk)] = {"type": loan.loan_type, "amount": str(deduction)}
 
-        # Update loan balance
-        loan.balance -= deduction
-        if loan.balance <= Decimal("0.00"):
-            loan.is_active = False
-        loan.save(update_fields=["balance", "is_active"])
-
-        total_deduction += deduction
-
-        breakdown[loan.loan_type] = {
-            "amount": float(deduction),
-            "reason": reason,
-        }
-
-        loan_type_summary[loan.loan_type] = float(
-            loan_type_summary.get(loan.loan_type, Decimal("0.00")) + deduction
-        )
-
-    return total_deduction, breakdown, loan_type_summary
+    summary = {loan_type: str(amount) for loan_type, amount in totals_by_type.items()}
+    return sum(totals_by_type.values(), Decimal("0.00")), breakdown, summary, updated_loans

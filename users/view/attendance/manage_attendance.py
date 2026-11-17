@@ -3,10 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from ...decorators import hr_required
 from ...models import User, Attendance
 
 
 @login_required
+@hr_required
 def manage_attendance(request: HttpRequest, attendance_id=None) -> HttpResponse:
     """
     Combined view for add/edit attendance.

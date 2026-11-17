@@ -2,10 +2,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from users.decorators import hr_required
 from users.forms import UserRegistrationForm
 
 
 @login_required
+@hr_required
 def register(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = UserRegistrationForm(request.POST)
